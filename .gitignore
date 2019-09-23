@@ -1,0 +1,9 @@
+*.png
+*.ppm
+*.exe
+*.swp
+*.old
+obj/*
+test
+cachegrind*
+callgrind*
