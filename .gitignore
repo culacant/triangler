@@ -3,6 +3,8 @@
 *.exe
 *.swp
 *.old
+*.txt
+*o
 obj/*
 test
 cachegrind*

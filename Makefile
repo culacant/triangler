@@ -1,5 +1,5 @@
 CC = gcc 
-CFLAGS = -std=c99 -Wall -ggdb -O3
+CFLAGS = -std=c99 -Wall -ggdb -O3 -march=native 
 LDFLAGS = -lm
 OBJ = obj/render.o
 exe: render

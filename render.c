@@ -1,29 +1,30 @@
 #include "render.h"
+#include "font.h"
 
 void buf_init()
 {
 	struct fb_var_screeninfo sinfo;
-	BUFFER.fb = open(FB_NAME, O_RDWR);
-	if(BUFFER.fb <= 0)
+	BUFFER.fd = open(FB_NAME, O_RDWR);
+	if(BUFFER.fd <= 0)
 	{
 		printf("ERROR: cannot open framebuffer: %s\n", FB_NAME);
 		return;
 	}
-	if(ioctl(BUFFER.fb, FBIOGET_VSCREENINFO, &sinfo) < 0)
+	if(ioctl(BUFFER.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
 	{
 		printf("ERROR: get screen info failed: %s\n", strerror(errno));
-		close(BUFFER.fb);
+		close(BUFFER.fd);
 		return;
 	}
 
 	BUFFER.width = sinfo.xres;
 	BUFFER.height = sinfo.yres;
 
-	BUFFER.buf = mmap(NULL, 4*BUFFER.width*BUFFER.height, PROT_READ | PROT_WRITE, MAP_SHARED, BUFFER.fb, 0);
+	BUFFER.buf = mmap(NULL, 4*BUFFER.width*BUFFER.height, PROT_READ | PROT_WRITE, MAP_SHARED, BUFFER.fd, 0);
 	if(BUFFER.buf == NULL)
 	{
 		printf("ERROR: mmap framebuffer failed\n");
-		close(BUFFER.fb);
+		close(BUFFER.fd);
 		return;
 	}
 
@@ -41,6 +42,7 @@ void buf_init()
 		BUFFER.zbufmax[i] = ZBUF_MAX;
 
 	memcpy(BUFFER.zbuf, BUFFER.zbufmax, sizeof(float)*BUFFER.width*BUFFER.height);
+	frametime_update();
 }
 void buf_free()
 {
@@ -50,7 +52,7 @@ void buf_free()
 	free(BUFFER.zbuf);
 	free(BUFFER.zbufmax);
 	munmap(BUFFER.buf,4*BUFFER.width*BUFFER.height);
-	close(BUFFER.fb);
+	close(BUFFER.fd);
 }
 void buf_flush()
 {
@@ -61,6 +63,7 @@ void buf_flush()
 	BUFFER.curbuf += 1;
 	if(BUFFER.curbuf >= BUFFER.bufcnt)
 		BUFFER.curbuf = 0;
+	frametime_update();
 
 }
 void buf_px(int x, int y, unsigned int color)
@@ -83,23 +86,134 @@ void buf_setz(int x, int y, float z)
 	BUFFER.zbuf[y*BUFFER.width+x] = z;
 }
 
-void update_proj(mat4f proj)
+void frametime_update()
 {
-	MATRICES.proj= proj;
-	MATRICES.fin = mat_mul(MATRICES.vp, MATRICES.proj);
-	MATRICES.fin = mat_mul(MATRICES.mv, MATRICES.fin);
+	static int lasttime;
+	int curtime;
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	curtime = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
+	FRAMETIME = curtime - lasttime;
+	lasttime = curtime;
 }
-void update_vp(mat4f vp)
+
+void text_draw(int x, int y, const char *text, unsigned int color)
 {
-	MATRICES.vp = vp;
-	MATRICES.fin = mat_mul(MATRICES.vp, MATRICES.proj);
-	MATRICES.fin = mat_mul(MATRICES.mv, MATRICES.fin);
+/*
+	int yi = 0;
+	int yl = 0;
+	int xi = 0;
+*/
+	unsigned long long c = 0;
+
+	int i = 0;
+	while(text[i])
+	{
+		c = FONT[text[i]];
+
+		for(int yi=TEXTRES;yi>0;yi--)
+		{
+			for(int xi=TEXTRES;xi>0;xi--)
+			{
+				if(c & 1)
+					buf_px(x+xi,y+yi, color);
+				c >>= 1;
+			}
+		}
+		x += TEXTRES;
+		i++;
+	}
 }
-void update_mv(mat4f mv)
+
+void input_init()
 {
-	MATRICES.mv = mv;
-	MATRICES.fin = mat_mul(MATRICES.vp, MATRICES.proj);
-	MATRICES.fin = mat_mul(MATRICES.mv, MATRICES.fin);
+	INPUTS.fd_kb = open(KB_NAME, O_RDONLY);
+	INPUTS.fd_mouse = open(MOUSE_NAME, O_RDONLY);
+	fcntl(INPUTS.fd_mouse, F_SETFL, O_NONBLOCK);
+
+	if(INPUTS.fd_kb <= 0)
+	{
+		printf("ERROR: cannot open input: %s\n", KB_NAME);
+		return;
+	}
+
+	memset(INPUTS.keys, 0, sizeof(INPUTS.keys));
+
+	if(INPUTS.fd_mouse<= 0)
+	{
+		printf("ERROR: cannot open input: %s\n", MOUSE_NAME);
+		return;
+	}
+	memset(INPUTS.mousedata, 0, sizeof(INPUTS.mousedata));
+	INPUTS.mouseactivity = 0;
+	INPUTS.mouseshow = 0;
+	INPUTS.mousex = 0;
+	INPUTS.mousey = 0;
+
+	input_flush();
+}
+void input_free()
+{
+	close(INPUTS.fd_kb);
+	close(INPUTS.fd_mouse);
+}
+void input_flush()
+{
+	memset(INPUTS.mousedata, 0, sizeof(INPUTS.mousedata));
+	ioctl(INPUTS.fd_kb, EVIOCGKEY(sizeof(INPUTS.keys)), INPUTS.keys);
+
+	INPUTS.mouseactivity = read(INPUTS.fd_mouse, INPUTS.mousedata, sizeof(INPUTS.mousedata));
+
+	if(INPUTS.mouseshow)
+	{
+		INPUTS.mousex += input_mouse_relx();
+		INPUTS.mousey += input_mouse_rely();
+	}
+}
+int input_key(int key)
+{
+	return !!(INPUTS.keys[key/8] & (1<<(key%8)));
+}
+int input_mouse_button(char button)
+{
+	return INPUTS.mousedata[0] & button;
+}
+int input_mouse_relx()
+{
+	return (int)INPUTS.mousedata[1];
+}
+int input_mouse_rely()
+{
+	return (int)INPUTS.mousedata[2];
+}
+int input_mouse_absx()
+{
+	return INPUTS.mousex;
+}
+int input_mouse_absy()
+{
+	return INPUTS.mousey;
+}
+
+void camera_update_mat(camera *cam)
+{
+	cam->fin = mat_mul(cam->proj, cam->vp);
+	cam->fin = mat_mul(cam->mv, cam->fin);
+}
+void camera_angle_from_target(camera *cam)
+{
+	float dx = cam->target.x - cam->pos.x;
+	float dy = cam->target.y - cam->pos.y;
+	float dz = cam->target.z - cam->pos.z;
+
+	cam->angle.x = atan2f(dx, dz);
+	cam->angle.y = atan2f(dx, dy);
+}
+void camera_target_from_angle(camera *cam)
+{
+	cam->target.x = cam->pos.x - sinf(cam->angle.x)*FOCUS_DIST;
+	cam->target.y = cam->pos.y + sinf(cam->angle.y)*FOCUS_DIST;
+	cam->target.z = cam->pos.z - cosf(cam->angle.y)*FOCUS_DIST;
 }
 
 void line(vec2i a, vec2i b, unsigned int color)
@@ -209,7 +323,7 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 				zfac += bary.y*b.z;
 				zfac += bary.z*c.z;
 				
-				if(zfac < buf_getz(j,y))
+				if(zfac > buf_getz(j,y))
 				{
 					buf_setz(j,y,zfac);
 					buf_px(j,y,color);
@@ -242,7 +356,7 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 				zfac += bary.y*b.z;
 				zfac += bary.z*c.z;
 				
-				if(zfac < buf_getz(j,y))
+				if(zfac > buf_getz(j,y))
 				{
 					buf_setz(j,y,zfac);
 					buf_px(j,y,color);
@@ -250,10 +364,6 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 			}
 		}
 	}
-}
-void triangle_tex(vec3f a, vec3f b, vec3f c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
-{
-	return;
 }
 void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
@@ -302,7 +412,14 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 	}
 
 	t_height = c.y-a.y+1;
-	for(int i=0;i<t_height;i++)
+	int i = 0;
+	if(a.y < 0)
+		i -= a.y;
+	int maxi = t_height;
+	if(a.y+t_height > BUFFER.height)
+		maxi = BUFFER.height - a.y;
+
+	for(;i<maxi;i++)
 	{
 		half = i > b.y - a.y || b.y == a.y;
 		alpha = (float)i/(float)t_height;
@@ -326,7 +443,17 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 			out1 = out2;
 			out2 = itmp2;
 		}
-		for(int j=out1.x;j<=out2.x;j++)
+		int j = out1.x;
+		int j2 = out2.x;
+		if(j < 0)
+			j = 0;
+		if(j >= BUFFER.width)
+			continue;
+		if(j2 < 0)
+			j2 = 0;
+		if(j2 >= BUFFER.width)
+			j2 = BUFFER.width;
+		for(;j<=j2;j++)
 		{
 			
 			if(j<0 || a.y+i<0 || j>=BUFFER.width || a.y+i>=BUFFER.height)
@@ -336,7 +463,6 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 			zfac = bary.x*a.z;
 			zfac += bary.y*b.z;
 			zfac += bary.z*c.z;
-				
 			if(zfac < buf_getz(j,a.y+i))
 			{
 				uv = bary2carth(uva, uvb, uvc, bary);
@@ -358,6 +484,17 @@ void rect(vec2i a, vec2i b, unsigned int color)
 			buf_px(x,y,color);
 		}
 	}
+}
+int triangle_in_viewport(vec3i a, vec3i b, vec3i c)
+{
+// FIXME
+	if( (a.y < 0 && b.y < 0 && c.y < 0) ||
+		(a.y > BUFFER.height && b.y > BUFFER.height && c.y > BUFFER.height))
+		return 0;
+	if(	(a.x < 0 && b.x < 0 && c.x < 0) ||
+		(a.x > BUFFER.width && b.x > BUFFER.width && c.x > BUFFER.width))
+		return 0;
+	return 1;
 }
 
 model loadiqe(const char *filename)
@@ -458,45 +595,17 @@ void drawmodel_wire(model m, unsigned int color)
 		v0 = m.vp[m.fm[f*3+0]];
 		v1 = m.vp[m.fm[f*3+1]];
 		v2 = m.vp[m.fm[f*3+2]];
-		a.x = (v0.x+1.0f)*BUFFER.width/2.0f;
-		a.y = (v0.y+1.0f)*BUFFER.height/2.0f;
-		b.x = (v1.x+1.0f)*BUFFER.width/2.0f;
-		b.y = (v1.y+1.0f)*BUFFER.height/2.0f;
-		c.x = (v2.x+1.0f)*BUFFER.width/2.0f;
-		c.y = (v2.y+1.0f)*BUFFER.height/2.0f;
+
+		v0 = vec_trans(v0,CAMERA->fin);
+		v1 = vec_trans(v1,CAMERA->fin);
+		v2 = vec_trans(v2,CAMERA->fin);
+		a = (vec2i){(int)v0.x, (int)v0.y};
+		b = (vec2i){(int)v1.x, (int)v1.y};
+		c = (vec2i){(int)v2.x, (int)v2.y};
+
 		line(a,b,color);
 		line(b,c,color);
 		line(c,a,color);
-	}
-}
-void drawmodel(model m)
-{
-	vec3f a;
-	vec3f b;
-	vec3f c;
-	vec3f n;
-	float face = 0;
-	for(int f=0;f<m.fcnt;f++)
-	{
-		a = m.vp[m.fm[f*3+0]];
-		b = m.vp[m.fm[f*3+1]];
-		c = m.vp[m.fm[f*3+2]];
-		n = m.fn[f];
-
-		a.x = (a.x+1.0f)*BUFFER.width/2.0f;
-		a.y = (a.y+1.0f)*BUFFER.height/2.0f;
-		b.x = (b.x+1.0f)*BUFFER.width/2.0f;
-		b.y = (b.y+1.0f)*BUFFER.height/2.0f;
-		c.x = (c.x+1.0f)*BUFFER.width/2.0f;
-		c.y = (c.y+1.0f)*BUFFER.height/2.0f;
-		
-		face = vec_dot(n,(vec3f){0.0f,0.0f,1.0f});
-		
-		unsigned int color = ((int)(254*face) << BSHIFT)+((int)(254*face) << RSHIFT)+((int)(254*face) << GSHIFT);
-		if(face > 0)
-		{
-			triangle_color(a,b,c,color);
-		}
 	}
 }
 void drawmodel_tex(model m, texture t)
@@ -513,7 +622,7 @@ void drawmodel_tex(model m, texture t)
 	vec3i bi;
 	vec3i ci;
 
-	vec3f l = (vec3f){0.0f,0.0f,-1.0f};
+	vec3f l = (vec3f){0.0f,0.0f,1.0f};
 
 	float face = 0.0f;
 	for(int f=0;f<m.fcnt;f++)
@@ -523,32 +632,33 @@ void drawmodel_tex(model m, texture t)
 		c = m.vp[m.fm[f*3+2]];
 		n = m.fn[f];
 
+		a = vec_trans(a,CAMERA->fin);
+		b = vec_trans(b,CAMERA->fin);
+		c = vec_trans(c,CAMERA->fin);
 
-		a = vec_trans(a,MATRICES.fin);
-		b = vec_trans(b,MATRICES.fin);
-		c = vec_trans(c,MATRICES.fin);
-//		n = vec_norm(vec_trans(n,MATRICES.fin));
+		ai.x = (int)a.x;
+		ai.y = (int)a.y;
+		ai.z = (int)a.z;
+		bi.x = (int)b.x;
+		bi.y = (int)b.y;
+		bi.z = (int)b.z;
+		ci.x = (int)c.x;
+		ci.y = (int)c.y;
+		ci.z = (int)c.z;
 
-		n = vec_norm(vec_cross(vec_sub(c,a),vec_sub(b,a)));
-		face = vec_dot(n,l);
-
-		if(face > 0.0f)
+		if(triangle_in_viewport(ai, bi, ci))
 		{
-			ai.x = (int)a.x;
-			ai.y = (int)a.y;
-			ai.z = (int)a.z;
-			bi.x = (int)b.x;
-			bi.y = (int)b.y;
-			bi.z = (int)b.z;
-			ci.x = (int)c.x;
-			ci.y = (int)c.y;
-			ci.z = (int)c.z;
+			n = vec_norm(vec_cross(vec_sub(c,a),vec_sub(b,a)));
+			face = vec_dot(n,l);
 
-			uva = m.vt[m.fm[f*3+0]];
-			uvb = m.vt[m.fm[f*3+1]];
-			uvc = m.vt[m.fm[f*3+2]];
+			if(face > 0.0f)
+			{
+				uva = m.vt[m.fm[f*3+0]];
+				uvb = m.vt[m.fm[f*3+1]];
+				uvc = m.vt[m.fm[f*3+2]];
 
-			triangle_tex_i(ai,bi,ci,uva,uvb,uvc,face,t);
+				triangle_tex_i(ai,bi,ci,uva,uvb,uvc,face,t);
+			}
 		}
 	}
 }
@@ -559,17 +669,31 @@ texture loadtga(const char *filename)
 
 	FILE *fp = fopen(filename,"rb");
 
+	if(!fp)
+	{
+		printf("Can't open file %s\n", filename);
+		return out;
+	}
+
 	char bbp;
 	char *colordata = 0;
 
-	fread(&header, sizeof(header), 1, fp);
+	if(fread(&header, sizeof(header), 1, fp) == 0)
+	{
+		printf("Can't read TGA header from file %s\n", filename);
+		return out;
+	}
 	memcpy(&out.width, &header[12], sizeof(char)*2);
 	memcpy(&out.height, &header[14], sizeof(char)*2);
 	bbp = header[16];
 // TODO: header sanity checking
 	out.data = calloc(sizeof(unsigned int),out.width*out.height);
 	colordata = calloc(sizeof(unsigned char),out.width*out.height*bbp);
-	fread(colordata, sizeof(unsigned char), out.width*out.height*bbp, fp);
+	if(fread(colordata, sizeof(unsigned char), out.width*out.height*bbp, fp) == 0)
+	{
+		printf("Can't read TGA color data from file %s\n", filename);
+		return out;
+	}
 	int charcnt = 0;
 	for(int i=0;i<out.width*out.height;i++)
 	{
@@ -607,9 +731,21 @@ float vec_dot(vec3f a, vec3f b)
 {
 	return a.x*b.x+a.y*b.y+a.z*b.z;
 }
+float vec_len(vec3f a)
+{
+	return sqrtf(a.x*a.x + a.y*a.y + a.z*a.z);
+}
 int vec_dot_i(vec3i a, vec3i b)
 {
 	return a.x*b.x+a.y*b.y+a.z*b.z;
+}
+float vec_dist(vec3f a, vec3f b)
+{
+	float dx = b.x-a.x;
+	float dy = b.y-a.y;
+	float dz = b.z-a.z;
+
+	return sqrtf(dx*dx + dy*dy + dz*dz);
 }
 vec3f vec_add(vec3f a, vec3f b)
 {
@@ -634,6 +770,10 @@ vec3i vec_sub_i(vec3i a, vec3i b)
 	out.y = a.y-b.y;
 	out.z = a.z-b.z;
 	return out;
+}
+vec3f vec_mul_f(vec3f a, float f)
+{
+	return (vec3f){a.x*f, a.y*f, a.z*f};
 }
 vec3f vec_norm(vec3f a)
 {
@@ -695,13 +835,21 @@ vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p)
 vec3f vec_trans(vec3f a, mat4f m)
 {
 	vec3f out = {0};
+	float w;
+
 	out.x = m.m0*a.x + m.m4*a.y + m.m8*a.z + m.m12;
 	out.y = m.m1*a.x + m.m5*a.y + m.m9*a.z + m.m13;
 	out.z = m.m2*a.x + m.m6*a.y + m.m10*a.z + m.m14;
+	w = m.m3*a.x + m.m7*a.y + m.m11*a.z + m.m15;
+
+	out.x = out.x/w;
+	out.y = out.y/w;
+	out.z = out.z/w;
+
 	return out;
 }
 
-mat4f identity()
+mat4f mat_identity()
 {
 	mat4f out = {1.0f, 0.0f, 0.0f, 0.0f,
 				 0.0f, 1.0f, 0.0f, 0.0f,
@@ -711,7 +859,7 @@ mat4f identity()
 }
 mat4f viewport(int x, int y, int w, int h)
 {
-	mat4f out = identity();
+	mat4f out = mat_identity();
 	out.m12 = x+w/2.0f;
 	out.m13 = y+h/2.0f;
 	out.m14 = DEPTH/2.0f;
@@ -745,32 +893,33 @@ mat4f mat_mul(mat4f a, mat4f b)
 	out.m15 = a.m12*b.m3 + a.m13*b.m7 + a.m14*b.m11 + a.m15*b.m15;
 	return out;
 }
-mat4f mat_lookat(vec3f eye, vec3f center, vec3f up)
+mat4f mat_lookat(vec3f pos, vec3f center, vec3f up)
 {
 	mat4f out = {0};
-	vec3f z = vec_norm(vec_sub(eye,center));
-	vec3f x = vec_norm(vec_cross(up,z));
-	vec3f y = vec_norm(vec_cross(z,x));
-	mat4f minv = identity();
-	mat4f tr = identity();
+	vec3f z = vec_norm(vec_sub(pos, center));
+	vec3f x = vec_norm(vec_cross(up, z));
+	vec3f y = vec_norm(vec_cross(z, x));
 
-	minv.m0 = x.x;
-	minv.m4 = x.y;
-	minv.m8 = x.z;
+	out.m0 = x.x;
+	out.m4 = x.y;
+	out.m8 = x.z;
+	out.m12 = -1.0f*center.x;
 
-	minv.m1 = y.x;
-	minv.m5 = y.y;
-	minv.m9 = y.z;
+	out.m1 = y.x;
+	out.m5 = y.y;
+	out.m9 = y.z;
+	out.m13 = -1.0f*center.y;
 
-	minv.m2 = z.x;
-	minv.m6 = z.y;
-	minv.m10 = z.z;
+	out.m2 = z.x;
+	out.m6 = z.y;
+	out.m10 = z.z;
+	out.m14 = -1.0f*center.z;
 
-	tr.m8 = center.x*-1.0f;
-	tr.m9 = center.y*-1.0f;
-	tr.m10 = center.z*-1.0f;
+	out.m3 = 0.0f;
+	out.m7 = 0.0f;
+	out.m11 = 0.0f;
+	out.m15 = 1.0f;
 
-	out = mat_mul(minv,tr);
 	return out;
 }
 
@@ -792,4 +941,12 @@ unsigned int brighten(unsigned int c, float b)
 	a = (c & 0xFF0000) >> RSHIFT;
 	out += (int)(a*b) << RSHIFT;
 	return out;
+}
+
+void print_mat(mat4f m)
+{
+	printf("%f %f %f %f\n", m.m0, m.m4, m.m8, m.m12);
+	printf("%f %f %f %f\n", m.m1, m.m5, m.m9, m.m13);
+	printf("%f %f %f %f\n", m.m2, m.m6, m.m10, m.m14);
+	printf("%f %f %f %f\n", m.m3, m.m7, m.m11, m.m15);
 }
