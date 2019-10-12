@@ -1,3 +1,9 @@
 # triangler
 
-software rasterization for the mentally retarded
+Software renderer using libc and linux API.
+
+##Features:
+- IQE model loading
+- TGA texture loading
+- simple text rendering
+- matrix/vector math
