@@ -7,3 +7,4 @@ Software renderer using libc and linux API.
 - TGA texture loading
 - simple text rendering
 - matrix/vector math
+- mouse/keyboard input via /dev/input*
