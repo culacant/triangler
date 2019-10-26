@@ -33,9 +33,9 @@
 #define RSHIFT 16
 #define ASHIFT 24
 
-#define FOCUS_DIST 50.0f
-#define DEPTH 255.0f
-#define ZBUF_MAX FLT_MAX
+#define FOCUS_DIST 	50.0f
+#define DEPTH 		255.0f
+#define ZBUF_MAX	FLT_MAX
 
 #define NUMBUFF 2
 
@@ -151,6 +151,8 @@ void buf_px(int x, int y, unsigned int color);
 float buf_getz(int x, int y);
 void buf_setz(int x, int y, float z);
 
+void zbuf_to_tga(const char *filename);
+
 void frametime_update();
 
 void text_draw(int x, int y, const char *text, unsigned int color);
@@ -173,6 +175,7 @@ camera camera_init();
 void camera_free();
 
 void line(vec2i a, vec2i b, unsigned int color);
+void line_dot(vec2i a, vec2i b, unsigned int color);
 void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color);
 void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
@@ -203,12 +206,17 @@ vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p);
 vec3f vec_trans(vec3f a, mat4f m);
 
+void vec2i_swap(vec2i *a, vec2i *b);
+void vec2f_swap(vec2f *a, vec2f *b);
+void vec3i_swap(vec3i *a, vec3i *b);
+void vec3f_swap(vec3f *a, vec3f *b);
+
 mat4f mat_identity();
 mat4f viewport(int x, int y, int w, int h);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 
-unsigned int color(unsigned int r, unsigned int g, unsigned int b); 
+unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
 unsigned int brighten(unsigned int c, float b);
 
 void print_mat(mat4f m);

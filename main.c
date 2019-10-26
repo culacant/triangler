@@ -4,10 +4,10 @@
 int main()
 {
 	char text[25];
-//	texture t = loadtga("res/layout.tga");
-//	model iqe = loadiqe("res/cube.iqe");
-	texture t = loadtga("res/head256.tga");
-	model iqe = loadiqe("res/head.iqe");
+	texture t = loadtga("res/castle.tga");
+	model iqe = loadiqe("res/castle.iqe");
+	texture t2 = loadtga("res/head256.tga");
+	model iqe2 = loadiqe("res/head.iqe");
 
 	buf_init();
 	input_init();
@@ -15,7 +15,7 @@ int main()
 	camera cam = {0};
 	CAMERA = &cam;
 
-	CAMERA->pos = (vec3f){0.0f,0.0f,3.0f};
+	CAMERA->pos = (vec3f){1.0f,1.0f,3.0f};
 	CAMERA->target = (vec3f){0.0f,0.0f,0.0f};
 	CAMERA->up = (vec3f){0.0f,-1.0f,0.0f};
 /*
@@ -26,7 +26,7 @@ int main()
 
 	CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
     CAMERA->proj = mat_identity();
-    CAMERA->proj.m11 = 1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
+    CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
     CAMERA->vp = viewport(BUFFER.width/8, BUFFER.height/8, BUFFER.width*(16/9), BUFFER.height*(16/9));
 	camera_update_mat(CAMERA);
 
@@ -76,7 +76,6 @@ int main()
 		}
 		if(input_key(KEY_C))
 		{
-//			printf("angle %f %f\n", CAMERA->angle.x, CAMERA->angle.y);
 			if(input_key(KEY_LEFTSHIFT))
 				CAMERA->proj.m13 += 0.1f;
 			else
@@ -90,19 +89,32 @@ int main()
 		}
 
 		CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
-		CAMERA->proj.m11 = 1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
+		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		camera_update_mat(CAMERA);
 
 		drawmodel_tex(iqe,t);
+//		drawmodel_wire(iqe, color_rgb(255,255,0));
+		drawmodel_tex(iqe2,t2);
+//		drawmodel_wire(iqe2, color_rgb(255,255,0));
 
 		sprintf(text, "%i", FRAMETIME);
-		text_draw(5,5,text , color(255,255,255));
+		text_draw(5,5,text , color_rgb(255,255,255));
+
+		if(input_key(KEY_Z))
+		{
+			printf("pos %f %f %f\n", CAMERA->pos.x, CAMERA->pos.y, CAMERA->pos.z);
+			printf("tar %f %f %f\n", CAMERA->target.x, CAMERA->target.y, CAMERA->target.z);
+		
+			zbuf_to_tga("./zbuf.tga");
+		}
+			
 		buf_flush();
 		input_flush();
 	}
-
 	unloadtex(t);
 	unloadmodel(iqe);
+	unloadtex(t2);
+	unloadmodel(iqe2);
 	buf_free();
 	input_free();
 	return 0;

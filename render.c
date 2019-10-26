@@ -86,6 +86,42 @@ void buf_setz(int x, int y, float z)
 	BUFFER.zbuf[y*BUFFER.width+x] = z;
 }
 
+void zbuf_to_tga(const char *filename)
+{
+	char header[18] = {0};
+	short width = (short)BUFFER.width;
+	short height = (short)BUFFER.height;
+	char *colordata = calloc(sizeof(unsigned char), BUFFER.width*BUFFER.height * 4);
+
+	FILE *fp = fopen(filename, "wb");
+	
+	if(!fp)
+	{
+		printf("Can't open file %s\n", filename);
+		return;
+	}
+	memcpy(&header[12], &width, sizeof(char)*2);
+	memcpy(&header[14], &height, sizeof(char)*2);
+	header[2] = 2; 		// image type
+	header[16] = 32; 	// BPP
+
+	int cnt = 0;
+	for(int i=0;i< BUFFER.width*BUFFER.height;i++)
+	{
+		colordata[cnt++] = (char)BUFFER.zbuf[i];
+		colordata[cnt++] = (char)BUFFER.zbuf[i];
+		colordata[cnt++] = (char)BUFFER.zbuf[i];
+		colordata[cnt++] = 255;
+	}
+	fwrite(header, sizeof(char), 18, fp);
+	fwrite(colordata, sizeof(char), BUFFER.width * BUFFER.height * 4, fp);
+
+	fclose(fp);
+	free(colordata);
+	
+	return;
+}
+
 void frametime_update()
 {
 	static int lasttime;
@@ -99,17 +135,12 @@ void frametime_update()
 
 void text_draw(int x, int y, const char *text, unsigned int color)
 {
-/*
-	int yi = 0;
-	int yl = 0;
-	int xi = 0;
-*/
 	unsigned long long c = 0;
 
 	int i = 0;
 	while(text[i])
 	{
-		c = FONT[text[i]];
+		c = FONT[(unsigned char)text[i]];
 
 		for(int yi=TEXTRES;yi>0;yi--)
 		{
@@ -264,36 +295,75 @@ void line(vec2i a, vec2i b, unsigned int color)
 		}
 	}
 }
+void line_dot(vec2i a, vec2i b, unsigned int color)
+{
+	int steep = 0;
+	int tmp;
+	int dx;
+	int dy;
+	int de2;
+	int e2;
+	int y;
+
+	if(abs(a.x-b.x) < abs(a.y-b.y))
+	{
+		tmp = a.y;
+		a.y = a.x;
+		a.x = tmp;
+		tmp = b.y;
+		b.y = b.x;
+		b.x = tmp;
+		steep = 1;
+	}
+	if(a.x > b.x)
+	{
+		tmp = a.x;
+		a.x = b.x;
+		b.x = tmp;
+		tmp = a.y;
+		a.y = b.y;
+		b.y = tmp;
+	}
+	dx = b.x-a.x;
+	dy = b.y-a.y;
+	de2 = abs(dy)*2;
+	e2 = 0;
+	y = a.y;
+	for(int x=a.x; x<=b.x;x++)
+	{
+		if(x%2)
+		{
+			if(steep)
+				buf_px(y,x,color);
+			else
+				buf_px(x,y,color);
+		}
+		e2 += de2;
+		if(e2 > dx)
+		{
+			y += (b.y>a.y?1:-1);
+			e2 -= dx*2;
+		}
+	}
+}
 void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 {
-	vec3f tmp3;
 	vec3f bary;
 	float zfac;
-	vec2i tmp2;
 	int t_height;
 	int s_height;
 	float alpha;
 	float beta;
 	vec2i out1;
 	vec2i out2;
+
 	if(a.y>b.y)
-	{
-		tmp3 = a;
-		a = b;
-		b = tmp3;
-	}
+		vec3f_swap(&a, &b);
 	if(a.y>c.y)
-	{
-		tmp3 = a;
-		a = c;
-		c = tmp3;
-	}
+		vec3f_swap(&a, &c);
 	if(b.y>c.y)
-	{
-		tmp3 = c;
-		c = b;
-		b = tmp3;
-	}
+		vec3f_swap(&b, &c);
+
 	t_height = c.y-a.y;
 	if(t_height <= 0)
 		return;
@@ -309,12 +379,10 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 			out1.y = a.y+(c.y-a.y)*alpha;
 			out2.x = a.x+(b.x-a.x)*beta;
 			out2.y = a.y+(b.y-a.y)*beta;
+
 			if(out1.x>out2.x)
-			{
-				tmp2 = out1;
-				out1 = out2;
-				out2 = tmp2;
-			}
+				vec2i_swap(&out1, &out2);
+
 			for(int j=out1.x;j<=out2.x;j++)
 			{
 				bary = barycentric(a,b,c,(vec3f){j,y,0.0f});
@@ -343,11 +411,8 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 			out2.x = b.x+(c.x-b.x)*beta;
 			out2.y = b.y+(c.y-b.y)*beta;
 			if(out1.x>out2.x)
-			{
-				tmp2 = out1;
-				out1 = out2;
-				out2 = tmp2;
-			}
+				vec2i_swap(&out1, &out2);
+				 
 			for(int j=out1.x;j<=out2.x;j++)
 			{
 				bary = barycentric(a,b,c,(vec3f){j,y,0.0f});
@@ -367,48 +432,36 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 }
 void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
-	vec3i itmp3;
-	vec3f bary;
-	vec2f tmp2;
-	vec2f uv;
+	vec2i pos;
+	vec2f uvpos;
 	vec2i uvi;
-	vec2i out1;
-	vec2i out2;
-	vec2i itmp2;
-	float zfac;
+	vec2f uvout1;
+	vec2f uvout2;
+	vec3i out1;
+	vec3i out2;
 	int t_height;
 	int s_height;
 	float alpha;
 	float beta;
+	float phi;
+	float zfac;
 	unsigned int color;
 	int half;
 
 	if(a.y>b.y)
 	{
-		itmp3 = a;
-		a = b;
-		b = itmp3;
-		tmp2 = uva;
-		uva = uvb;
-		uvb = tmp2;
+		vec3i_swap(&a, &b);
+		vec2f_swap(&uva, &uvb);
 	}
 	if(a.y>c.y)
 	{
-		itmp3 = a;
-		a = c;
-		c = itmp3;
-		tmp2 = uva;
-		uva = uvc;
-		uvc = tmp2;
+		vec3i_swap(&a, &c);
+		vec2f_swap(&uva, &uvc);
 	}
 	if(b.y>c.y)
 	{
-		itmp3 = c;
-		c = b;
-		b = itmp3;
-		tmp2 = uvc;
-		uvc = uvb;
-		uvb = tmp2;
+		vec3i_swap(&b, &c);
+		vec2f_swap(&uvb, &uvc);
 	}
 
 	t_height = c.y-a.y+1;
@@ -425,24 +478,40 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 		alpha = (float)i/(float)t_height;
 		out1.x = a.x+(c.x-a.x)*alpha;
 		out1.y = a.y+(c.y-a.y)*alpha;
+		out1.z = a.z+(c.z-a.z)*alpha;
+
+		uvout1.x = uva.x + (uvc.x-uva.x)*alpha;
+		uvout1.y = uva.y + (uvc.y-uva.y)*alpha;
+
 		if(half)
 		{
 			s_height = c.y-b.y+1;
 			beta = (float) (i-(b.y-a.y))/s_height;
 			out2.x = b.x+(c.x-b.x)*beta;
+			out2.y = b.y+(c.y-b.y)*beta;
+			out2.z = b.z+(c.z-b.z)*beta;
+
+			uvout2.x = uvb.x + (uvc.x-uvb.x)*beta;
+			uvout2.y = uvb.y + (uvc.y-uvb.y)*beta;
 		}
 		else
 		{
 			s_height = b.y-a.y+1;
 			beta = (float)i/(float)s_height;
 			out2.x = a.x+(b.x-a.x)*beta;
+			out2.y = a.y+(b.y-a.y)*beta;
+			out2.z = a.z+(b.z-a.z)*beta;
+
+			uvout2.x = uva.x + (uvb.x-uva.x)*beta;
+			uvout2.y = uva.y + (uvb.y-uva.y)*beta;
 		}
+
 		if(out1.x>out2.x)
 		{
-			itmp2 = out1;
-			out1 = out2;
-			out2 = itmp2;
+			vec3i_swap(&out1, &out2);
+			vec2f_swap(&uvout1, &uvout2);
 		}
+
 		int j = out1.x;
 		int j2 = out2.x;
 		if(j < 0)
@@ -455,22 +524,35 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 			j2 = BUFFER.width;
 		for(;j<=j2;j++)
 		{
-			
-			if(j<0 || a.y+i<0 || j>=BUFFER.width || a.y+i>=BUFFER.height)
-				continue;
+			if(out1.x == out2.x)
+				phi = 1.0f;
+			else
+				phi = (float)(j-out1.x)/(out2.x-out1.x);
 
-			bary = barycentric_i(a,b,c,(vec3i){j,a.y+i,a.z});
-			zfac = bary.x*a.z;
-			zfac += bary.y*b.z;
-			zfac += bary.z*c.z;
-			if(zfac < buf_getz(j,a.y+i))
+			pos = (vec2i){j, a.y+i};
+			zfac = out1.z + (out2.z-out1.z)*phi;
+			zfac *= -1.0f;
+
+			if(buf_getz(pos.x,pos.y) > zfac)
 			{
-				uv = bary2carth(uva, uvb, uvc, bary);
-				uvi.x = (int)(t.width*uv.x)%t.width;
-				uvi.y = (int)(t.height*uv.y)%t.height;
+				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
+				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
+if(uvpos.x < 0.0f)
+	uvpos.x = 0.0f;
+if(uvpos.y < 0.0f)
+	uvpos.y = 0.0f;
+if(uvpos.x > 1.0f)
+	uvpos.x = 1.0f;
+if(uvpos.y > 1.0f)
+	uvpos.y = 1.0f;
+
+				uvi.x = (int)(t.width*uvpos.x);
+				uvi.y = (int)(t.height*uvpos.y);
+
+
 				color = t.data[uvi.x+uvi.y*t.width];
-				buf_setz(j,a.y+i,zfac);
-				buf_px(j,a.y+i,color);
+				buf_setz(pos.x,pos.y,zfac);
+				buf_px(pos.x,pos.y,color);
 			}
 		}
 	}
@@ -488,11 +570,13 @@ void rect(vec2i a, vec2i b, unsigned int color)
 int triangle_in_viewport(vec3i a, vec3i b, vec3i c)
 {
 // FIXME
-	if( (a.y < 0 && b.y < 0 && c.y < 0) ||
-		(a.y > BUFFER.height && b.y > BUFFER.height && c.y > BUFFER.height))
+	if(a.y < 0 && b.y < 0 && c.y < 0)
 		return 0;
-	if(	(a.x < 0 && b.x < 0 && c.x < 0) ||
-		(a.x > BUFFER.width && b.x > BUFFER.width && c.x > BUFFER.width))
+	if(a.y > BUFFER.height && b.y > BUFFER.height && c.y > BUFFER.height)
+		return 0;
+	if(a.x < 0 && b.x < 0 && c.x < 0)
+		return 0;
+	if(a.x > BUFFER.width && b.x > BUFFER.width && c.x > BUFFER.width)
 		return 0;
 	return 1;
 }
@@ -531,18 +615,18 @@ model loadiqe(const char *filename)
 	int inint[3];
 	while(fgets(line, 512, fp) != NULL)
 	{
-		if(sscanf(line," vp %f %f %f", &invec.x, &invec.z, &invec.y) == 3)
+		if(sscanf(line," vp %f %f %f", &invec.x, &invec.y, &invec.z) == 3)
 		{
 			out.vp[vpcnt] = invec;
 			vpcnt++;
 		}
 		else if(sscanf(line," vt %f %f", &invec.x, &invec.y) == 2)
 		{
-			out.vt[vtcnt].x = 1.0f-invec.x;
+			out.vt[vtcnt].x = invec.x;
 			out.vt[vtcnt].y = 1.0f-invec.y;
 			vtcnt++;
 		}
-		else if(sscanf(line," vn %f %f %f", &invec.x, &invec.z, &invec.y) == 3)
+		else if(sscanf(line," vn %f %f %f", &invec.x, &invec.y, &invec.z) == 3)
 		{
 			out.vn[vncnt] = invec;
 			vncnt++;
@@ -584,28 +668,49 @@ void unloadmodel(model m)
 
 void drawmodel_wire(model m, unsigned int color)
 {
-	vec2i a;
-	vec2i b;
-	vec2i c;
-	vec3f v0;
-	vec3f v1;
-	vec3f v2;
+	vec2i ai;
+	vec2i bi;
+	vec2i ci;
+	vec3f a;
+	vec3f b;
+	vec3f c;
+	vec3f n;
+
+	vec3f l = (vec3f){0.0f, 0.f, 1.0f};
+
+	float face = 0.0f;
+	unsigned int colorout;
 	for(int f=0;f<m.fcnt;f++)
 	{
-		v0 = m.vp[m.fm[f*3+0]];
-		v1 = m.vp[m.fm[f*3+1]];
-		v2 = m.vp[m.fm[f*3+2]];
+		a = m.vp[m.fm[f*3+0]];
+		b = m.vp[m.fm[f*3+1]];
+		c = m.vp[m.fm[f*3+2]];
 
-		v0 = vec_trans(v0,CAMERA->fin);
-		v1 = vec_trans(v1,CAMERA->fin);
-		v2 = vec_trans(v2,CAMERA->fin);
-		a = (vec2i){(int)v0.x, (int)v0.y};
-		b = (vec2i){(int)v1.x, (int)v1.y};
-		c = (vec2i){(int)v2.x, (int)v2.y};
+		a = vec_trans(a,CAMERA->fin);
+		b = vec_trans(b,CAMERA->fin);
+		c = vec_trans(c,CAMERA->fin);
 
-		line(a,b,color);
-		line(b,c,color);
-		line(c,a,color);
+		n = vec_norm(vec_cross(vec_sub(c, a), vec_sub(b, a)));
+		face = vec_dot(n, l);
+
+		ai = (vec2i){(int)a.x, (int)a.y};
+		bi = (vec2i){(int)b.x, (int)b.y};
+		ci = (vec2i){(int)c.x, (int)c.y};
+
+		if(face > 0.0f)
+		{
+			colorout = color;
+			line(ai,bi,colorout);
+			line(bi,ci,colorout);
+			line(ci,ai,colorout);
+		}
+		else
+		{
+			colorout = color^0xffffff;
+			line(ai,bi,colorout);
+			line(bi,ci,colorout);
+			line(ci,ai,colorout);
+		}
 	}
 }
 void drawmodel_tex(model m, texture t)
@@ -648,7 +753,7 @@ void drawmodel_tex(model m, texture t)
 
 		if(triangle_in_viewport(ai, bi, ci))
 		{
-			n = vec_norm(vec_cross(vec_sub(c,a),vec_sub(b,a)));
+			n = vec_norm(vec_cross(vec_sub(c, a),vec_sub(b, a)));
 			face = vec_dot(n,l);
 
 			if(face > 0.0f)
@@ -826,10 +931,14 @@ vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p)
 	vec2f out = {0};
 	out.x = a.x*p.x+b.x*p.y+c.x*p.z;
 	out.y = a.y*p.x+b.y*p.y+c.y*p.z;
-	if(out.x < 0)
-		out.x = 0;
-	if(out.y < 0)
-		out.y = 0;
+	if(out.x < 0.0f)
+		out.x = 0.0f;
+	if(out.y < 0.0f)
+		out.y = 0.0f;
+	if(out.x > 1.0f)
+		out.x = 1.0f;
+	if(out.y > 1.0f)
+		out.y = 1.0f;
 	return out;
 }
 vec3f vec_trans(vec3f a, mat4f m)
@@ -847,6 +956,31 @@ vec3f vec_trans(vec3f a, mat4f m)
 	out.z = out.z/w;
 
 	return out;
+}
+
+void vec2i_swap(vec2i *a, vec2i *b)
+{
+	vec2i tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+void vec2f_swap(vec2f *a, vec2f *b)
+{
+	vec2f tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+void vec3i_swap(vec3i *a, vec3i *b)
+{
+	vec3i tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+void vec3f_swap(vec3f *a, vec3f *b)
+{
+	vec3f tmp = *a;
+	*a = *b;
+	*b = tmp;
 }
 
 mat4f mat_identity()
@@ -923,7 +1057,7 @@ mat4f mat_lookat(vec3f pos, vec3f center, vec3f up)
 	return out;
 }
 
-unsigned int color(unsigned int r, unsigned int g, unsigned int b)
+unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b)
 {
 	unsigned int color = r << RSHIFT;
 	color += g << GSHIFT;
