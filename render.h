@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #include <linux/fb.h>
 #include <linux/input.h>
+#include <linux/kd.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -16,6 +17,7 @@
 #include <float.h>
 #include <time.h>
 
+#define TTY_NAME "/dev/tty3"
 #define FB_NAME "/dev/fb0"
 #define KB_NAME "/dev/input/event4"
 #define MOUSE_NAME "/dev/input/mice"
@@ -38,6 +40,8 @@
 #define ZBUF_MAX	FLT_MAX
 
 #define NUMBUFF 2
+
+#define PI 3.14159265358979323846
 
 typedef struct vec2i vec2i;
 typedef struct vec3f vec3f;
@@ -117,6 +121,7 @@ typedef struct BUFF
 	unsigned int width;
 	unsigned int height;
 	unsigned int *buf;
+	int tty;
 	int fd;
 	int curbuf;
 	int bufcnt;

@@ -10,6 +10,20 @@ void buf_init()
 		printf("ERROR: cannot open framebuffer: %s\n", FB_NAME);
 		return;
 	}
+	BUFFER.tty = open(TTY_NAME,O_RDWR);
+	if(BUFFER.tty <= 0)
+	{
+		printf("ERROR: cannot open TTY: %s\n", TTY_NAME);
+		return;
+	}
+// TODO: uncomment when things stop crashing
+/*
+	if(ioctl(BUFFER.tty, KDSETMODE, KD_GRAPHICS) == -1)
+	{
+		printf("ERROR: cannot set graphics mode on TTY: %s\n", TTY_NAME);
+		return;
+	}
+*/
 	if(ioctl(BUFFER.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
 	{
 		printf("ERROR: get screen info failed: %s\n", strerror(errno));
@@ -52,6 +66,13 @@ void buf_free()
 	free(BUFFER.zbuf);
 	free(BUFFER.zbufmax);
 	munmap(BUFFER.buf,4*BUFFER.width*BUFFER.height);
+
+	if(ioctl(BUFFER.tty, KDSETMODE, KD_TEXT) == -1)
+	{
+		printf("WARNING: cannot set text mode on TTY: %s\n", TTY_NAME);
+	}
+
+	close(BUFFER.tty);
 	close(BUFFER.fd);
 }
 void buf_flush()
@@ -137,21 +158,29 @@ void text_draw(int x, int y, const char *text, unsigned int color)
 {
 	unsigned long long c = 0;
 
+	int ox = x;
 	int i = 0;
 	while(text[i])
 	{
-		c = FONT[(unsigned char)text[i]];
-
-		for(int yi=TEXTRES;yi>0;yi--)
+		if(text[i] == '\n')
 		{
-			for(int xi=TEXTRES;xi>0;xi--)
-			{
-				if(c & 1)
-					buf_px(x+xi,y+yi, color);
-				c >>= 1;
-			}
+			x = ox;
+			y += TEXTRES;
 		}
-		x += TEXTRES;
+		else
+		{
+			c = FONT[(unsigned char)text[i]];
+			for(int yi=TEXTRES;yi>0;yi--)
+			{
+				for(int xi=TEXTRES;xi>0;xi--)
+				{
+					if(c & 1)
+						buf_px(x+xi,y+yi, color);
+					c >>= 1;
+				}
+			}
+			x += TEXTRES;
+		}
 		i++;
 	}
 }
@@ -233,18 +262,26 @@ void camera_update_mat(camera *cam)
 }
 void camera_angle_from_target(camera *cam)
 {
+/*
 	float dx = cam->target.x - cam->pos.x;
 	float dy = cam->target.y - cam->pos.y;
 	float dz = cam->target.z - cam->pos.z;
 
-	cam->angle.x = atan2f(dx, dz);
-	cam->angle.y = atan2f(dx, dy);
+	float distx = sqrtf(dx*dx+dz*dz);
+	float disty = sqrtf(dx*dx+dy*dy);
+
+	cam->angle.x = asinf((float)fabs(dx)/distx);
+	cam->angle.y = -asinf((float)fabs(dy)/disty);
+*/
 }
 void camera_target_from_angle(camera *cam)
 {
-	cam->target.x = cam->pos.x - sinf(cam->angle.x)*FOCUS_DIST;
-	cam->target.y = cam->pos.y + sinf(cam->angle.y)*FOCUS_DIST;
-	cam->target.z = cam->pos.z - cosf(cam->angle.y)*FOCUS_DIST;
+	cam->target.x = sinf(cam->angle.x);
+	cam->target.y = cosf(cam->angle.x);
+	cam->target.z = sinf(cam->angle.y);
+
+	cam->target = vec_add(cam->target, cam->pos);
+
 }
 
 void line(vec2i a, vec2i b, unsigned int color)
@@ -448,6 +485,8 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 	unsigned int color;
 	int half;
 
+	if((a.y == b.y) && (a.y == c.y))
+		return;
 	if(a.y>b.y)
 	{
 		vec3i_swap(&a, &b);
@@ -465,14 +504,8 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 	}
 
 	t_height = c.y-a.y+1;
-	int i = 0;
-	if(a.y < 0)
-		i -= a.y;
-	int maxi = t_height;
-	if(a.y+t_height > BUFFER.height)
-		maxi = BUFFER.height - a.y;
 
-	for(;i<maxi;i++)
+	for(int i=0;i<t_height;i++)
 	{
 		half = i > b.y - a.y || b.y == a.y;
 		alpha = (float)i/(float)t_height;
@@ -512,8 +545,7 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 			vec2f_swap(&uvout1, &uvout2);
 		}
 
-		int j = out1.x;
-		int j2 = out2.x;
+		/*
 		if(j < 0)
 			j = 0;
 		if(j >= BUFFER.width)
@@ -522,8 +554,11 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 			j2 = 0;
 		if(j2 >= BUFFER.width)
 			j2 = BUFFER.width;
-		for(;j<=j2;j++)
+		*/
+		for(int j=out1.x;j<=out2.x;j++)
 		{
+			if(j<0 || j>=BUFFER.width)
+				continue;
 			if(out1.x == out2.x)
 				phi = 1.0f;
 			else
@@ -537,6 +572,7 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 			{
 				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
 				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
+// FIXME sanitize uv and remove these
 if(uvpos.x < 0.0f)
 	uvpos.x = 0.0f;
 if(uvpos.y < 0.0f)
@@ -569,15 +605,19 @@ void rect(vec2i a, vec2i b, unsigned int color)
 }
 int triangle_in_viewport(vec3i a, vec3i b, vec3i c)
 {
-// FIXME
-	if(a.y < 0 && b.y < 0 && c.y < 0)
+// FIXME NEED TESTS still droppin triangles
+	if((a.z < 0) && (b.z < 0) && (c.z < 0))
 		return 0;
-	if(a.y > BUFFER.height && b.y > BUFFER.height && c.y > BUFFER.height)
+	if((a.y < 0) && (b.y < 0) && (c.y < 0))
 		return 0;
-	if(a.x < 0 && b.x < 0 && c.x < 0)
+	if((a.y > BUFFER.height) && (b.y > BUFFER.height) && (c.y > BUFFER.height))
 		return 0;
-	if(a.x > BUFFER.width && b.x > BUFFER.width && c.x > BUFFER.width)
+
+	if((a.x < 0) && (b.x < 0) && (c.x < 0))
 		return 0;
+	if((a.x > BUFFER.width) && (b.x > BUFFER.width) && (c.x > BUFFER.width))
+		return 0;
+
 	return 1;
 }
 
@@ -1027,32 +1067,36 @@ mat4f mat_mul(mat4f a, mat4f b)
 	out.m15 = a.m12*b.m3 + a.m13*b.m7 + a.m14*b.m11 + a.m15*b.m15;
 	return out;
 }
-mat4f mat_lookat(vec3f pos, vec3f center, vec3f up)
+mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 {
-	mat4f out = {0};
-	vec3f z = vec_norm(vec_sub(pos, center));
+// TODO: optimize
+	mat4f minv = mat_identity();
+	mat4f tr = mat_identity();
+
+	vec3f z = vec_norm(vec_sub(pos, tar));
 	vec3f x = vec_norm(vec_cross(up, z));
-	vec3f y = vec_norm(vec_cross(z, x));
+	vec3f y = vec_norm(vec_cross(z,x));
 
-	out.m0 = x.x;
-	out.m4 = x.y;
-	out.m8 = x.z;
-	out.m12 = -1.0f*center.x;
+	minv.m0 = x.x;
+	minv.m1 = y.x;
+	minv.m2 = z.x;
+	minv.m3 = 0.0f;
 
-	out.m1 = y.x;
-	out.m5 = y.y;
-	out.m9 = y.z;
-	out.m13 = -1.0f*center.y;
+	minv.m4 = x.y;
+	minv.m5 = y.y;
+	minv.m6 = z.y;
+	minv.m7 = 0.0f;
 
-	out.m2 = z.x;
-	out.m6 = z.y;
-	out.m10 = z.z;
-	out.m14 = -1.0f*center.z;
+	minv.m8 = x.z;
+	minv.m9 = y.z;
+	minv.m10 = z.z;
+	minv.m11 = 0.0f;
 
-	out.m3 = 0.0f;
-	out.m7 = 0.0f;
-	out.m11 = 0.0f;
-	out.m15 = 1.0f;
+	tr.m12 = -tar.x;
+	tr.m13 = -tar.y;
+	tr.m14 = -tar.z;
+
+	mat4f out = mat_mul(tr,minv);
 
 	return out;
 }
