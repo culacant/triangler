@@ -68,7 +68,7 @@ int main()
 		camera_update_mat(CAMERA);
 
 		drawmodel_tex(iqe,t);
-		drawmodel_wire(iqe, color_rgb(255,0,0));
+	//	drawmodel_wire(iqe, color_rgb(255,0,0));
 
 		sprintf(debug_text, "TIME: %i\npos: %f %f %f\ntar: %f %f %f\na: %f %f %f\nb:%f %f %f\nc: %f %f %f\nouti %i",
 							FRAMETIME,

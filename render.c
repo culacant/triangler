@@ -483,10 +483,7 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, 
 
 	int minx;
 	int maxx;
-/*
-	int miny;
 	int maxy;
-*/
 
 	float alpha;
 	float beta;
@@ -512,39 +509,34 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, 
 	}
 
 	t_height = c.y-a.y;
+	if(t_height+a.y >= BUFFER.height)
+		maxy = BUFFER.height-1;
+	else
+		maxy = t_height;
 
-	for(int i=0;i<t_height;i++)
+	for(int i=0;i<maxy;i++)
 	{
 		half = i > (b.y-a.y) || b.y == a.y;
 		alpha = (float)i/t_height;
-		out1.x = a.x+(c.x-a.x)*alpha;
-		out1.y = a.y+(c.y-a.y)*alpha;
-		out1.z = a.z+(c.z-a.z)*alpha;
 
-		uvout1.x = uva.x + (uvc.x-uva.x)*alpha;
-		uvout1.y = uva.y + (uvc.y-uva.y)*alpha;
+		out1 = vec3i_lerp(a, c, alpha);
+		uvout1 = vec2i_lerp(uva, uvc, alpha);
 
 		if(half)
 		{
 			s_height = c.y-b.y;
 			beta = (float) (i-(b.y-a.y))/s_height;
-			out2.x = b.x+(c.x-b.x)*beta;
-			out2.y = b.y+(c.y-b.y)*beta;
-			out2.z = b.z+(c.z-b.z)*beta;
 
-			uvout2.x = uvb.x + (uvc.x-uvb.x)*beta;
-			uvout2.y = uvb.y + (uvc.y-uvb.y)*beta;
+			out2 = vec3i_lerp(b, c, beta);
+			uvout2 = vec2i_lerp(uvb, uvc, beta);
 		}
 		else
 		{
 			s_height = b.y-a.y;
 			beta = (float)i/s_height;
-			out2.x = a.x+(b.x-a.x)*beta;
-			out2.y = a.y+(b.y-a.y)*beta;
-			out2.z = a.z+(b.z-a.z)*beta;
 
-			uvout2.x = uva.x + (uvb.x-uva.x)*beta;
-			uvout2.y = uva.y + (uvb.y-uva.y)*beta;
+			out2 = vec3i_lerp(a, b, beta);
+			uvout2 = vec2i_lerp(uva, uvb, beta);
 		}
 
 		if(out1.x>out2.x)
@@ -553,29 +545,32 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, 
 			vec2i_swap(&uvout1, &uvout2);
 		}
 
-		minx = out1.x;
-		if(minx < 0)
+		if(out1.x < 0)
 			minx = 0;
-		maxx = out2.x;
-		if(maxx > BUFFER.width)
-			maxx = BUFFER.width;
+		else if(out1.x >= BUFFER.width)
+			continue;
+		else
+			minx = out1.x;
 
-printf("%i | %i\n", out1.x, out2.x);
+		if(out2.x < 0)
+			continue;
+		else if(out2.x >= BUFFER.width)
+			maxx = BUFFER.width-1;
+		else
+			maxx = out2.x;
+
 		for(int j=minx;j<=maxx;j++)
 		{
 			if(out1.x == out2.x)
 				phi = 1.0f;
 			else
-				phi = (float)(j-out1.x)/(out2.x-out1.x);
+				phi = lerp_inv_i(out1.x, out2.x, j);
 
-			pos.x = out1.x + (out2.x-out1.x)*phi;
-			pos.y = out1.y + (out2.y-out1.y)*phi;
-			pos.z = (out1.z + (out2.z-out1.z)*phi);
+			pos = vec3i_lerp(out1, out2, phi);
 
 			if(buf_getz(pos.x,pos.y) < pos.z)
 			{
-				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
-				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
+				uvpos = vec2i_lerp(uvout1, uvout2, phi);
 
 				color = t.data[uvpos.x+uvpos.y*t.width];
 				buf_setz(pos.x,pos.y,pos.z);
@@ -1248,6 +1243,21 @@ vec3f vec3f_lerp(vec3f a, vec3f b, float amt)
 	out.z = lerp(a.z, b.z, amt);
 	return out;
 }
+vec2i vec2i_lerp(vec2i a, vec2i b, float amt)
+{
+	vec2i out = {0};
+	out.x = lerp_i(a.x, b.x, amt);
+	out.y = lerp_i(a.y, b.y, amt);
+	return out;
+}
+vec3i vec3i_lerp(vec3i a, vec3i b, float amt)
+{
+	vec3i out = {0};
+	out.x = lerp_i(a.x, b.x, amt);
+	out.y = lerp_i(a.y, b.y, amt);
+	out.z = lerp_i(a.z, b.z, amt);
+	return out;
+}
 float lerp(float a, float b, float amt)
 {
 	return a+amt*(b-a);
@@ -1259,6 +1269,10 @@ int lerp_i(int a, int b, float amt)
 float lerp_inv(float a, float b, float c)
 {
 	return (c-a)/(b-a);
+}
+float lerp_inv_i(int a, int b, int c)
+{
+	return (float)(c-a)/(b-a);
 }
 
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b)

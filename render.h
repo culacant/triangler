@@ -244,9 +244,12 @@ mat4f mat_mul(mat4f a, mat4f b);
 
 vec3f vec3f_lerp(vec3f a, vec3f b, float amt);
 vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
+vec3i vec3i_lerp(vec3i a, vec3i b, float amt);
+vec2i vec2i_lerp(vec2i a, vec2i b, float amt);
 float lerp(float a, float b, float amt);
 int lerp_i(int a, int b, float amt);
 float lerp_inv(float a, float b, float c);
+float lerp_inv_i(int a, int b, int c);
 
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
 unsigned int brighten(unsigned int c, float b);
