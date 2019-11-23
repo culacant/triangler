@@ -14,7 +14,7 @@
 #include <string.h>
 #include <byteswap.h>
 #include <errno.h>
-#include <float.h>
+#include <limits.h>
 #include <time.h>
 
 #define TTY_NAME "/dev/tty3"
@@ -37,7 +37,11 @@
 
 #define FOCUS_DIST 	50.0f
 #define DEPTH 		255.0f
-#define ZBUF_MAX	FLT_MAX
+#define ZBUF_MIN 	INT_MIN
+
+#define CLIP_MAX_POINT 10
+#define CLIP_POINT_IN 3
+#define CLIP_NEAR 0.01f
 
 #define NUMBUFF 2
 
@@ -45,6 +49,8 @@
 
 typedef struct vec2i vec2i;
 typedef struct vec3f vec3f;
+typedef struct vec4f vec4f;
+typedef struct vec3i vec3i;
 typedef struct vec2f vec2f;
 typedef struct mat4f mat4f;
 typedef struct model model;
@@ -73,6 +79,13 @@ typedef struct vec3f
 	float y;
 	float z;
 } vec3f;
+typedef struct vec4f
+{
+	float x;
+	float y;
+	float z;
+	float w;
+} vec4f;
 typedef struct vec2f
 {
 	float x;
@@ -126,8 +139,8 @@ typedef struct BUFF
 	int curbuf;
 	int bufcnt;
 	unsigned int **buffers;
-	float *zbuf;
-	float *zbufmax;
+	int *zbuf;
+	int *zbufmin;
 } BUFF;
 typedef struct INPUT 
 {
@@ -153,8 +166,8 @@ void buf_init();
 void buf_free();
 void buf_flush();
 void buf_px(int x, int y, unsigned int color);
-float buf_getz(int x, int y);
-void buf_setz(int x, int y, float z);
+int buf_getz(int x, int y);
+void buf_setz(int x, int y, int z);
 
 void zbuf_to_tga(const char *filename);
 
@@ -182,10 +195,9 @@ void camera_free();
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
 void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color);
-void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
+void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);
-int triangle_in_viewport(vec3i a, vec3i b, vec3i c);
 
 model loadiqe(const char *filename);
 void unloadmodel(model m);
@@ -195,6 +207,11 @@ void drawmodel_tex(model m, texture t);
 texture loadtga(const char *filename);
 void unloadtex(texture t);
 void drawtex(texture t);
+
+// see CLIP_MAX_POINT and CLIP_POINT_IN
+void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout);
+void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
+void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout);
 
 vec3f vec_cross(vec3f a, vec3f b);
 float vec_dot(vec3f a, vec3f b);
@@ -210,6 +227,9 @@ vec3f barycentric(vec3f a, vec3f b, vec3f c, vec3f p);
 vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p);
 vec3f vec_trans(vec3f a, mat4f m);
+vec4f vec_trans_4f(vec3f a, mat4f m);
+
+vec3f vec4_to_vec3(vec4f a);
 
 void vec2i_swap(vec2i *a, vec2i *b);
 void vec2f_swap(vec2f *a, vec2f *b);
@@ -218,8 +238,15 @@ void vec3f_swap(vec3f *a, vec3f *b);
 
 mat4f mat_identity();
 mat4f viewport(int x, int y, int w, int h);
-mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
+mat4f mat_projection(vec3f pos, vec3f target);
+mat4f mat_mul(mat4f a, mat4f b);
+
+vec3f vec3f_lerp(vec3f a, vec3f b, float amt);
+vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
+float lerp(float a, float b, float amt);
+int lerp_i(int a, int b, float amt);
+float lerp_inv(float a, float b, float c);
 
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
 unsigned int brighten(unsigned int c, float b);
@@ -231,3 +258,8 @@ INPUT INPUTS;
 MATS MATRICES;
 camera *CAMERA;
 int FRAMETIME;
+
+
+// DEBUG
+vec3f output[3];
+int outputi;

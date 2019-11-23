@@ -49,13 +49,13 @@ void buf_init()
 	for(int i=0;i<BUFFER.bufcnt;i++)
 		BUFFER.buffers[i] = calloc(BUFFER.width*BUFFER.height, sizeof(unsigned int));
 
-	BUFFER.zbuf = malloc(sizeof(float) * BUFFER.width*BUFFER.height);
-	BUFFER.zbufmax = malloc(sizeof(float) * BUFFER.width*BUFFER.height);
+	BUFFER.zbuf = malloc(sizeof(int) * BUFFER.width*BUFFER.height);
+	BUFFER.zbufmin = malloc(sizeof(int) * BUFFER.width*BUFFER.height);
 
 	for(int i=0;i<BUFFER.width*BUFFER.height;i++)
-		BUFFER.zbufmax[i] = ZBUF_MAX;
+		BUFFER.zbufmin[i] = ZBUF_MIN;
 
-	memcpy(BUFFER.zbuf, BUFFER.zbufmax, sizeof(float)*BUFFER.width*BUFFER.height);
+	memcpy(BUFFER.zbuf, BUFFER.zbufmin, sizeof(int)*BUFFER.width*BUFFER.height);
 	frametime_update();
 }
 void buf_free()
@@ -64,7 +64,7 @@ void buf_free()
 		free(BUFFER.buffers[i]);
 	free(BUFFER.buffers);
 	free(BUFFER.zbuf);
-	free(BUFFER.zbufmax);
+	free(BUFFER.zbufmin);
 	munmap(BUFFER.buf,4*BUFFER.width*BUFFER.height);
 
 	if(ioctl(BUFFER.tty, KDSETMODE, KD_TEXT) == -1)
@@ -79,7 +79,7 @@ void buf_flush()
 {
 	memcpy(BUFFER.buf, BUFFER.buffers[BUFFER.curbuf], sizeof(unsigned int)*BUFFER.width*BUFFER.height);
 	memset(BUFFER.buffers[BUFFER.curbuf], 0, sizeof(unsigned int)*BUFFER.width*BUFFER.height);
-	memcpy(BUFFER.zbuf, BUFFER.zbufmax, sizeof(float)*BUFFER.width*BUFFER.height);
+	memcpy(BUFFER.zbuf, BUFFER.zbufmin, sizeof(int)*BUFFER.width*BUFFER.height);
 
 	BUFFER.curbuf += 1;
 	if(BUFFER.curbuf >= BUFFER.bufcnt)
@@ -93,14 +93,14 @@ void buf_px(int x, int y, unsigned int color)
 		return;
 	BUFFER.buffers[BUFFER.curbuf][y*BUFFER.width+x] = color;
 }
-float buf_getz(int x, int y)
+int buf_getz(int x, int y)
 {
 	if(x<0 || y<0 || x>=BUFFER.width || y>=BUFFER.height)
-		return ZBUF_MAX;
+		return ZBUF_MIN;
 	else
 		return BUFFER.zbuf[y*BUFFER.width+x];
 }
-void buf_setz(int x, int y, float z)
+void buf_setz(int x, int y, int z)
 {
 	if(x<0 || y<0 || x>=BUFFER.width || y>=BUFFER.height)
 		return;
@@ -467,22 +467,30 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 		}
 	}
 }
-void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
+void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, float bright, texture t)
 {
-	vec2i pos;
-	vec2f uvpos;
-	vec2i uvi;
-	vec2f uvout1;
-	vec2f uvout2;
+	vec3i pos;
+	vec2i uvpos;
+
+	vec2i uvout1;
+	vec2i uvout2;
 	vec3i out1;
 	vec3i out2;
+	unsigned int color;
+
 	int t_height;
 	int s_height;
+
+	int minx;
+	int maxx;
+/*
+	int miny;
+	int maxy;
+*/
+
 	float alpha;
 	float beta;
 	float phi;
-	float zfac;
-	unsigned int color;
 	int half;
 
 	if((a.y == b.y) && (a.y == c.y))
@@ -490,25 +498,25 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 	if(a.y>b.y)
 	{
 		vec3i_swap(&a, &b);
-		vec2f_swap(&uva, &uvb);
+		vec2i_swap(&uva, &uvb);
 	}
 	if(a.y>c.y)
 	{
 		vec3i_swap(&a, &c);
-		vec2f_swap(&uva, &uvc);
+		vec2i_swap(&uva, &uvc);
 	}
 	if(b.y>c.y)
 	{
 		vec3i_swap(&b, &c);
-		vec2f_swap(&uvb, &uvc);
+		vec2i_swap(&uvb, &uvc);
 	}
 
-	t_height = c.y-a.y+1;
+	t_height = c.y-a.y;
 
 	for(int i=0;i<t_height;i++)
 	{
-		half = i > b.y - a.y || b.y == a.y;
-		alpha = (float)i/(float)t_height;
+		half = i > (b.y-a.y) || b.y == a.y;
+		alpha = (float)i/t_height;
 		out1.x = a.x+(c.x-a.x)*alpha;
 		out1.y = a.y+(c.y-a.y)*alpha;
 		out1.z = a.z+(c.z-a.z)*alpha;
@@ -518,7 +526,7 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 
 		if(half)
 		{
-			s_height = c.y-b.y+1;
+			s_height = c.y-b.y;
 			beta = (float) (i-(b.y-a.y))/s_height;
 			out2.x = b.x+(c.x-b.x)*beta;
 			out2.y = b.y+(c.y-b.y)*beta;
@@ -529,8 +537,8 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 		}
 		else
 		{
-			s_height = b.y-a.y+1;
-			beta = (float)i/(float)s_height;
+			s_height = b.y-a.y;
+			beta = (float)i/s_height;
 			out2.x = a.x+(b.x-a.x)*beta;
 			out2.y = a.y+(b.y-a.y)*beta;
 			out2.z = a.z+(b.z-a.z)*beta;
@@ -542,52 +550,35 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, 
 		if(out1.x>out2.x)
 		{
 			vec3i_swap(&out1, &out2);
-			vec2f_swap(&uvout1, &uvout2);
+			vec2i_swap(&uvout1, &uvout2);
 		}
 
-		/*
-		if(j < 0)
-			j = 0;
-		if(j >= BUFFER.width)
-			continue;
-		if(j2 < 0)
-			j2 = 0;
-		if(j2 >= BUFFER.width)
-			j2 = BUFFER.width;
-		*/
-		for(int j=out1.x;j<=out2.x;j++)
+		minx = out1.x;
+		if(minx < 0)
+			minx = 0;
+		maxx = out2.x;
+		if(maxx > BUFFER.width)
+			maxx = BUFFER.width;
+
+printf("%i | %i\n", out1.x, out2.x);
+		for(int j=minx;j<=maxx;j++)
 		{
-			if(j<0 || j>=BUFFER.width)
-				continue;
 			if(out1.x == out2.x)
 				phi = 1.0f;
 			else
 				phi = (float)(j-out1.x)/(out2.x-out1.x);
 
-			pos = (vec2i){j, a.y+i};
-			zfac = out1.z + (out2.z-out1.z)*phi;
-			zfac *= -1.0f;
+			pos.x = out1.x + (out2.x-out1.x)*phi;
+			pos.y = out1.y + (out2.y-out1.y)*phi;
+			pos.z = (out1.z + (out2.z-out1.z)*phi);
 
-			if(buf_getz(pos.x,pos.y) > zfac)
+			if(buf_getz(pos.x,pos.y) < pos.z)
 			{
 				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
 				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
-// FIXME sanitize uv and remove these
-if(uvpos.x < 0.0f)
-	uvpos.x = 0.0f;
-if(uvpos.y < 0.0f)
-	uvpos.y = 0.0f;
-if(uvpos.x > 1.0f)
-	uvpos.x = 1.0f;
-if(uvpos.y > 1.0f)
-	uvpos.y = 1.0f;
 
-				uvi.x = (int)(t.width*uvpos.x);
-				uvi.y = (int)(t.height*uvpos.y);
-
-
-				color = t.data[uvi.x+uvi.y*t.width];
-				buf_setz(pos.x,pos.y,zfac);
+				color = t.data[uvpos.x+uvpos.y*t.width];
+				buf_setz(pos.x,pos.y,pos.z);
 				buf_px(pos.x,pos.y,color);
 			}
 		}
@@ -602,23 +593,6 @@ void rect(vec2i a, vec2i b, unsigned int color)
 			buf_px(x,y,color);
 		}
 	}
-}
-int triangle_in_viewport(vec3i a, vec3i b, vec3i c)
-{
-// FIXME NEED TESTS still droppin triangles
-	if((a.z < 0) && (b.z < 0) && (c.z < 0))
-		return 0;
-	if((a.y < 0) && (b.y < 0) && (c.y < 0))
-		return 0;
-	if((a.y > BUFFER.height) && (b.y > BUFFER.height) && (c.y > BUFFER.height))
-		return 0;
-
-	if((a.x < 0) && (b.x < 0) && (c.x < 0))
-		return 0;
-	if((a.x > BUFFER.width) && (b.x > BUFFER.width) && (c.x > BUFFER.width))
-		return 0;
-
-	return 1;
 }
 
 model loadiqe(const char *filename)
@@ -708,15 +682,22 @@ void unloadmodel(model m)
 
 void drawmodel_wire(model m, unsigned int color)
 {
-	vec2i ai;
-	vec2i bi;
-	vec2i ci;
+	vec3f in[CLIP_POINT_IN];
+	vec2f uvin[CLIP_POINT_IN];
+	vec3f out[CLIP_MAX_POINT];
+	vec2f uvout[CLIP_MAX_POINT];
+	int outcnt = 0;
+
 	vec3f a;
 	vec3f b;
 	vec3f c;
 	vec3f n;
 
-	vec3f l = (vec3f){0.0f, 0.f, 1.0f};
+	vec2i ai;
+	vec2i bi;
+	vec2i ci;
+
+	vec3f l = (vec3f){0.0f,0.0f,1.0f};
 
 	float face = 0.0f;
 	unsigned int colorout;
@@ -725,36 +706,61 @@ void drawmodel_wire(model m, unsigned int color)
 		a = m.vp[m.fm[f*3+0]];
 		b = m.vp[m.fm[f*3+1]];
 		c = m.vp[m.fm[f*3+2]];
+		n = m.fn[f];
 
-		a = vec_trans(a,CAMERA->fin);
-		b = vec_trans(b,CAMERA->fin);
-		c = vec_trans(c,CAMERA->fin);
+		in[0] = vec_trans(a,CAMERA->fin);
+		in[1] = vec_trans(b,CAMERA->fin);
+		in[2] = vec_trans(c,CAMERA->fin);
 
-		n = vec_norm(vec_cross(vec_sub(c, a), vec_sub(b, a)));
-		face = vec_dot(n, l);
+		uvin[0] = (vec2f){0.0f, 0.0f};
+		uvin[1] = (vec2f){0.0f, 0.0f};
+		uvin[2] = (vec2f){0.0f, 0.0f};
 
-		ai = (vec2i){(int)a.x, (int)a.y};
-		bi = (vec2i){(int)b.x, (int)b.y};
-		ci = (vec2i){(int)c.x, (int)c.y};
-
-		if(face > 0.0f)
+		triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+// DEBUG
+		if(f<1)
 		{
-			colorout = color;
-			line(ai,bi,colorout);
-			line(bi,ci,colorout);
-			line(ci,ai,colorout);
+			output[0] =  (vec3f){in[0].x,in[0].y,in[0].z};
+			output[1] =  (vec3f){in[1].x,in[1].y,in[1].z};
+			output[2] =  (vec3f){in[2].x,in[2].y,in[2].z};
+			outputi = outcnt;
 		}
-		else
+
+		for(int i=0;i<outcnt;i++)
 		{
-			colorout = color^0xffffff;
-			line(ai,bi,colorout);
-			line(bi,ci,colorout);
-			line(ci,ai,colorout);
+			n = vec_norm(vec_cross(vec_sub(out[i*3+2], out[i*3+0]),vec_sub(out[i*3+1], out[i*3+0])));
+			face = vec_dot(n,l);
+
+
+			ai = (vec2i){(int)out[i*3+0].x, (int)out[i*3+0].y};
+			bi = (vec2i){(int)out[i*3+1].x, (int)out[i*3+1].y};
+			ci = (vec2i){(int)out[i*3+2].x, (int)out[i*3+2].y};
+
+			if(face > 0.0f)
+			{
+				colorout = color;
+				line(ai,bi,colorout);
+				line(bi,ci,colorout);
+				line(ci,ai,colorout);
+			}
+			else
+			{
+				colorout = color^0xffffff;
+				line(ai,bi,colorout);
+				line(bi,ci,colorout);
+				line(ci,ai,colorout);
+			}
 		}
 	}
 }
 void drawmodel_tex(model m, texture t)
 {
+	vec3f in[CLIP_POINT_IN];
+	vec2f uvin[CLIP_POINT_IN];
+	vec3f out[CLIP_MAX_POINT];
+	vec2f uvout[CLIP_MAX_POINT];
+	int outcnt = 0;
+
 	vec3f a;
 	vec3f b;
 	vec3f c;
@@ -766,6 +772,9 @@ void drawmodel_tex(model m, texture t)
 	vec3i ai;
 	vec3i bi;
 	vec3i ci;
+	vec2i uvai;
+	vec2i uvbi;
+	vec2i uvci;
 
 	vec3f l = (vec3f){0.0f,0.0f,1.0f};
 
@@ -777,32 +786,45 @@ void drawmodel_tex(model m, texture t)
 		c = m.vp[m.fm[f*3+2]];
 		n = m.fn[f];
 
-		a = vec_trans(a,CAMERA->fin);
-		b = vec_trans(b,CAMERA->fin);
-		c = vec_trans(c,CAMERA->fin);
+		uva = m.vt[m.fm[f*3+0]];
+		uvb = m.vt[m.fm[f*3+1]];
+		uvc = m.vt[m.fm[f*3+2]];
 
-		ai.x = (int)a.x;
-		ai.y = (int)a.y;
-		ai.z = (int)a.z;
-		bi.x = (int)b.x;
-		bi.y = (int)b.y;
-		bi.z = (int)b.z;
-		ci.x = (int)c.x;
-		ci.y = (int)c.y;
-		ci.z = (int)c.z;
+		in[0] = vec_trans(a,CAMERA->fin);
+		in[1] = vec_trans(b,CAMERA->fin);
+		in[2] = vec_trans(c,CAMERA->fin);
 
-		if(triangle_in_viewport(ai, bi, ci))
+		uvin[0] = uva;
+		uvin[1] = uvb;
+		uvin[2] = uvc;
+
+		triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+
+// DEBUG
+		if(f<1)
 		{
-			n = vec_norm(vec_cross(vec_sub(c, a),vec_sub(b, a)));
+			output[0] =  (vec3f){in[0].x,in[0].y,in[0].z};
+			output[1] =  (vec3f){in[1].x,in[1].y,in[1].z};
+			output[2] =  (vec3f){in[2].x,in[2].y,in[2].z};
+			outputi = outcnt;
+		}
+
+		for(int i=0;i<outcnt;i++)
+		{
+			n = vec_norm(vec_cross(vec_sub(out[i*3+2], out[i*3+0]),vec_sub(out[i*3+1], out[i*3+0])));
 			face = vec_dot(n,l);
 
 			if(face > 0.0f)
 			{
-				uva = m.vt[m.fm[f*3+0]];
-				uvb = m.vt[m.fm[f*3+1]];
-				uvc = m.vt[m.fm[f*3+2]];
+				ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
+				bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
+				ci = (vec3i){out[i*3+2].x, out[i*3+2].y, out[i*3+2].z};
 
-				triangle_tex_i(ai,bi,ci,uva,uvb,uvc,face,t);
+				uvai = (vec2i){uvout[i*3+0].x*t.width, uvout[i*3+0].y*t.height};
+				uvbi = (vec2i){uvout[i*3+1].x*t.width, uvout[i*3+1].y*t.height};
+				uvci = (vec2i){uvout[i*3+2].x*t.width, uvout[i*3+2].y*t.height};
+
+				triangle_tex_i(ai, bi, ci, uvai, uvbi, uvci, face, t);
 			}
 		}
 	}
@@ -865,6 +887,94 @@ void drawtex(texture t)
 			buf_px(x,y,t.data[x+y*t.width]);
 		}
 	}
+}
+
+// see CLIP_MAX_POINT and CLIP_POINT_IN
+void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
+{
+	if(posin[0].y <= 0.0f && posin[1].y <= 0.0f && posin[2].y <= 0.0f)
+	{
+		*cntout = 0;
+		return;
+	}
+	if(posin[0].y <= 0.0f)
+	{
+		if(posin[1].y <= 0.0f)
+		{
+			*cntout = 1;
+			triangle_clip_double(posin[2], posin[0], posin[1], uvin[2], uvin[0], uvin[1], posout, uvout);
+			return;
+		}
+		else if(posin[2].y <= 0.0f)
+		{
+			*cntout = 1;
+			triangle_clip_double(posin[1], posin[0], posin[2], uvin[1], uvin[0], uvin[2], posout, uvout);
+			return;
+		}
+		else
+		{
+			*cntout = 2;
+			triangle_clip_single(posin[1], posin[2], posin[0], uvin[1], uvin[2], uvin[0], posout, uvout);
+			return;
+		}
+	}
+	else if(posin[1].y <= 0.0f)
+	{
+		if(posin[2].y <= 0.0f)
+		{
+			*cntout = 1;
+			triangle_clip_double(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);
+			return;
+		}
+		else
+		{
+			*cntout = 2;
+			triangle_clip_single(posin[0], posin[2], posin[1], uvin[0], uvin[2], uvin[1], posout, uvout);
+			return;
+		}
+	}
+	else if(posin[2].y <= 0.0f)
+	{
+		*cntout = 2;
+		triangle_clip_single(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);
+		return;
+	}
+	else
+	{
+		memcpy(posout, posin, sizeof(vec3f) * CLIP_POINT_IN);
+		memcpy(uvout, uvin, sizeof(vec2f) * CLIP_POINT_IN);
+	}
+}
+void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout)
+{
+	float lerp1 = (-out.y) / (in1.y - out.y);
+	float lerp2 = (-out.y) / (in2.y - out.y);
+
+	posout[0] = vec3f_lerp(out, in1, lerp1);
+	posout[1] = in1;
+	posout[2] = in2;
+	uvout[0] = vec2f_lerp(outuv, in1uv, lerp1);
+	uvout[1] = in1uv;
+	uvout[2] = in2uv;
+
+	posout[3] = vec3f_lerp(out, in2, lerp2);
+	posout[4] = posout[0];
+	posout[5] = in2;
+	uvout[3] = vec2f_lerp(outuv, in2uv, lerp2);
+	uvout[4] = uvout[0];
+	uvout[5] = in2uv;
+}
+void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout)
+{
+	float lerp1 = (-out1.y) / (in.y - out1.y);
+	float lerp2 = (-out2.y) / (in.y - out2.y);
+
+	posout[0] = vec3f_lerp(out1, in, lerp1);
+	posout[1] = vec3f_lerp(out2, in, lerp2);
+	posout[2] = in;
+	uvout[0] = vec2f_lerp(out1uv, inuv, lerp1);
+	uvout[1] = vec2f_lerp(out2uv, inuv, lerp2);
+	uvout[2] = inuv;
 }
 
 vec3f vec_cross(vec3f a, vec3f b)
@@ -997,6 +1107,22 @@ vec3f vec_trans(vec3f a, mat4f m)
 
 	return out;
 }
+vec4f vec_trans_4f(vec3f a, mat4f m)
+{
+	vec4f out = {0};
+	out.x = m.m0*a.x + m.m4*a.y + m.m8*a.z + m.m12;
+	out.y = m.m1*a.x + m.m5*a.y + m.m9*a.z + m.m13;
+	out.z = m.m2*a.x + m.m6*a.y + m.m10*a.z + m.m14;
+	out.w = m.m3*a.x + m.m7*a.y + m.m11*a.z + m.m15;
+	return out;
+}
+
+vec3f vec4_to_vec3(vec4f a)
+{
+	float w = 1/a.w;
+
+	return (vec3f){a.x*w, a.y*w, a.z*w};
+}
 
 void vec2i_swap(vec2i *a, vec2i *b)
 {
@@ -1043,30 +1169,6 @@ mat4f viewport(int x, int y, int w, int h)
 	out.m10 = DEPTH/2.0f;
 	return out;
 }
-mat4f mat_mul(mat4f a, mat4f b)
-{
-	mat4f out = {0};
-	out.m0 = a.m0*b.m0 + a.m1*b.m4 + a.m2*b.m8 + a.m3*b.m12;
-	out.m1 = a.m0*b.m1 + a.m1*b.m5 + a.m2*b.m9 + a.m3*b.m13;
-	out.m2 = a.m0*b.m2 + a.m1*b.m6 + a.m2*b.m10 + a.m3*b.m14;
-	out.m3 = a.m0*b.m3 + a.m1*b.m7 + a.m2*b.m11 + a.m3*b.m15;
-
-	out.m4 = a.m4*b.m0 + a.m5*b.m4 + a.m6*b.m8 + a.m7*b.m12;
-	out.m5 = a.m4*b.m1 + a.m5*b.m5 + a.m6*b.m9 + a.m7*b.m13;
-	out.m6 = a.m4*b.m2 + a.m5*b.m6 + a.m6*b.m10 + a.m7*b.m14;
-	out.m7 = a.m4*b.m3 + a.m5*b.m7 + a.m6*b.m11 + a.m7*b.m15;
-
-	out.m8 = a.m8*b.m0 + a.m9*b.m4 + a.m10*b.m8 + a.m11*b.m12;
-	out.m9 = a.m8*b.m1 + a.m9*b.m5 + a.m10*b.m9 + a.m11*b.m13;
-	out.m10 = a.m8*b.m2 + a.m9*b.m6 + a.m10*b.m10 + a.m11*b.m14;
-	out.m11 = a.m8*b.m3 + a.m9*b.m7 + a.m10*b.m11 + a.m11*b.m15;
-
-	out.m12 = a.m12*b.m0 + a.m13*b.m4 + a.m14*b.m8 + a.m15*b.m12;
-	out.m13 = a.m12*b.m1 + a.m13*b.m5 + a.m14*b.m9 + a.m15*b.m13;
-	out.m14 = a.m12*b.m2 + a.m13*b.m6 + a.m14*b.m10 + a.m15*b.m14;
-	out.m15 = a.m12*b.m3 + a.m13*b.m7 + a.m14*b.m11 + a.m15*b.m15;
-	return out;
-}
 mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 {
 // TODO: optimize
@@ -1099,6 +1201,64 @@ mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 	mat4f out = mat_mul(tr,minv);
 
 	return out;
+}
+mat4f mat_projection(vec3f pos, vec3f target)
+{
+	mat4f out = mat_identity();
+	out.m11 = -1.0f/vec_len(vec_sub(pos, target));
+	return out;
+}
+mat4f mat_mul(mat4f a, mat4f b)
+{
+	mat4f out = {0};
+	out.m0 = a.m0*b.m0 + a.m1*b.m4 + a.m2*b.m8 + a.m3*b.m12;
+	out.m1 = a.m0*b.m1 + a.m1*b.m5 + a.m2*b.m9 + a.m3*b.m13;
+	out.m2 = a.m0*b.m2 + a.m1*b.m6 + a.m2*b.m10 + a.m3*b.m14;
+	out.m3 = a.m0*b.m3 + a.m1*b.m7 + a.m2*b.m11 + a.m3*b.m15;
+
+	out.m4 = a.m4*b.m0 + a.m5*b.m4 + a.m6*b.m8 + a.m7*b.m12;
+	out.m5 = a.m4*b.m1 + a.m5*b.m5 + a.m6*b.m9 + a.m7*b.m13;
+	out.m6 = a.m4*b.m2 + a.m5*b.m6 + a.m6*b.m10 + a.m7*b.m14;
+	out.m7 = a.m4*b.m3 + a.m5*b.m7 + a.m6*b.m11 + a.m7*b.m15;
+
+	out.m8 = a.m8*b.m0 + a.m9*b.m4 + a.m10*b.m8 + a.m11*b.m12;
+	out.m9 = a.m8*b.m1 + a.m9*b.m5 + a.m10*b.m9 + a.m11*b.m13;
+	out.m10 = a.m8*b.m2 + a.m9*b.m6 + a.m10*b.m10 + a.m11*b.m14;
+	out.m11 = a.m8*b.m3 + a.m9*b.m7 + a.m10*b.m11 + a.m11*b.m15;
+
+	out.m12 = a.m12*b.m0 + a.m13*b.m4 + a.m14*b.m8 + a.m15*b.m12;
+	out.m13 = a.m12*b.m1 + a.m13*b.m5 + a.m14*b.m9 + a.m15*b.m13;
+	out.m14 = a.m12*b.m2 + a.m13*b.m6 + a.m14*b.m10 + a.m15*b.m14;
+	out.m15 = a.m12*b.m3 + a.m13*b.m7 + a.m14*b.m11 + a.m15*b.m15;
+	return out;
+}
+
+vec2f vec2f_lerp(vec2f a, vec2f b, float amt)
+{
+	vec2f out = {0};
+	out.x = lerp(a.x, b.x, amt);
+	out.y = lerp(a.y, b.y, amt);
+	return out;
+}
+vec3f vec3f_lerp(vec3f a, vec3f b, float amt)
+{
+	vec3f out = {0};
+	out.x = lerp(a.x, b.x, amt);
+	out.y = lerp(a.y, b.y, amt);
+	out.z = lerp(a.z, b.z, amt);
+	return out;
+}
+float lerp(float a, float b, float amt)
+{
+	return a+amt*(b-a);
+}
+int lerp_i(int a, int b, float amt)
+{
+	return (int)(a+amt*(b-a));
+}
+float lerp_inv(float a, float b, float c)
+{
+	return (c-a)/(b-a);
 }
 
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b)
