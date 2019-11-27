@@ -4,6 +4,7 @@
 *.swp
 *.old
 *.txt
+*.tga
 *o
 obj/*
 test

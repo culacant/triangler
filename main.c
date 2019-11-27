@@ -4,8 +4,8 @@
 int main()
 {
 	char debug_text[256];
-	texture t = loadtga("res/head.tga");
-	model iqe = loadiqe("res/head.iqe");
+	texture t = loadtga("res/layout.tga");
+	model iqe = loadiqe("res/cube.iqe");
 	/*
 	texture t2 = loadtga("res/head256.tga");
 	model iqe2 = loadiqe("res/head.iqe");
@@ -19,13 +19,14 @@ int main()
 
 	CAMERA->pos = (vec3f){0.0f,0.0f,0.0f};
 //	CAMERA->target = (vec3f){0.0f,0.0f,0.0f};
-	CAMERA->angle = (vec2f){PI+PI/3,0.0f};
+	CAMERA->angle = (vec2f){0.0f, 0.0f};
 	camera_target_from_angle(CAMERA);
-	CAMERA->up = (vec3f){0.0f,0.0f,-1.0f};
+	CAMERA->up = (vec3f){0.0f,1.0f,0.0f};
 
 	CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
 	CAMERA->proj = mat_projection(CAMERA->pos, CAMERA->target);
-    CAMERA->vp = viewport(BUFFER.width/8, BUFFER.height/8, BUFFER.width*(16/9), BUFFER.height*(16/9));
+//	CAMERA->proj = mat_frustum(BUFFER.width, BUFFER.height);
+    CAMERA->vp = mat_viewport(BUFFER.width/8, BUFFER.height/8, BUFFER.width*(16/9), BUFFER.height*(16/9));
 
 	camera_update_mat(CAMERA);
 
@@ -68,7 +69,7 @@ int main()
 		camera_update_mat(CAMERA);
 
 		drawmodel_tex(iqe,t);
-	//	drawmodel_wire(iqe, color_rgb(255,0,0));
+		drawmodel_wire(iqe, color_rgb(255,0,0));
 
 		sprintf(debug_text, "TIME: %i\npos: %f %f %f\ntar: %f %f %f\na: %f %f %f\nb:%f %f %f\nc: %f %f %f\nouti %i",
 							FRAMETIME,

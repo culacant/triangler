@@ -42,6 +42,7 @@
 #define CLIP_MAX_POINT 10
 #define CLIP_POINT_IN 3
 #define CLIP_NEAR 0.01f
+#define CLIP_FAR 255.0f
 
 #define NUMBUFF 2
 
@@ -212,6 +213,7 @@ void drawtex(texture t);
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout);
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout);
+void line_clip_viewport(vec2f *a, vec2f *b);
 
 vec3f vec_cross(vec3f a, vec3f b);
 float vec_dot(vec3f a, vec3f b);
@@ -237,10 +239,13 @@ void vec3i_swap(vec3i *a, vec3i *b);
 void vec3f_swap(vec3f *a, vec3f *b);
 
 mat4f mat_identity();
-mat4f viewport(int x, int y, int w, int h);
+mat4f mat_viewport(int x, int y, int w, int h);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 mat4f mat_projection(vec3f pos, vec3f target);
 mat4f mat_mul(mat4f a, mat4f b);
+mat4f mat_invert(mat4f a);
+
+mat4f mat_frustum(int width, int height);
 
 vec3f vec3f_lerp(vec3f a, vec3f b, float amt);
 vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
