@@ -121,6 +121,7 @@ void zbuf_to_tga(const char *filename)
 		printf("Can't open file %s\n", filename);
 		return;
 	}
+
 	memcpy(&header[12], &width, sizeof(char)*2);
 	memcpy(&header[14], &height, sizeof(char)*2);
 	header[2] = 2; 		// image type
@@ -129,13 +130,13 @@ void zbuf_to_tga(const char *filename)
 	int cnt = 0;
 	for(int i=0;i< BUFFER.width*BUFFER.height;i++)
 	{
-		colordata[cnt++] = (char)BUFFER.zbuf[i];
-		colordata[cnt++] = (char)BUFFER.zbuf[i];
-		colordata[cnt++] = (char)BUFFER.zbuf[i];
+		colordata[cnt++] = (unsigned char)BUFFER.zbuf[i];
+		colordata[cnt++] = (unsigned char)BUFFER.zbuf[i];
+		colordata[cnt++] = (unsigned char)BUFFER.zbuf[i];
 		colordata[cnt++] = 255;
 	}
 	fwrite(header, sizeof(char), 18, fp);
-	fwrite(colordata, sizeof(char), BUFFER.width * BUFFER.height * 4, fp);
+	fwrite(colordata, sizeof(unsigned char), BUFFER.width * BUFFER.height * 4, fp);
 
 	fclose(fp);
 	free(colordata);
@@ -449,8 +450,8 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 				zfac += bary.x*a.z;
 				zfac += bary.y*b.z;
 				zfac += bary.z*c.z;
-				
-				if(zfac > buf_getz(j,y))
+// fix: zfac float => int	
+				if(zfac < buf_getz(j,y))
 				{
 					buf_setz(j,y,zfac);
 					buf_px(j,y,color);
@@ -480,7 +481,8 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 				zfac += bary.y*b.z;
 				zfac += bary.z*c.z;
 				
-				if(zfac > buf_getz(j,y))
+// fix: zfac float => int	
+				if(zfac < buf_getz(j,y))
 				{
 					buf_setz(j,y,zfac);
 					buf_px(j,y,color);
@@ -489,7 +491,7 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 		}
 	}
 }
-void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, float bright, texture t)
+void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
 	vec3i pos;
 	vec2i uvpos;
@@ -575,52 +577,16 @@ void triangle_tex_i(vec3i a, vec3i b, vec3i c, vec2i uva, vec2i uvb, vec2i uvc, 
 			vec2i_swap(&uvout1, &uvout2);
 		}
 
-		if(out1.x <= 0)
-			minx = 1;
-		else if(out1.x >= BUFFER.height)
-			continue;
-		else
-			minx = out1.x;
-		if(out2.x <= 0)
-			continue;
-		else if(out2.x >= BUFFER.width)
-			maxx = BUFFER.width;
-		else
-			maxx = out2.x;
-		for(int j=minx; j<maxx; j++)
-		{
-//printf("i %i j %i x %i %i y %i %i\n", i, j, out1.x, out2.x, out1.y, out2.y);
-			if(out1.x == out2.x || j == out1.x || j == out2.x)
-				phi = 1.0f;
-			else
-				phi = lerp_inv_i(out1.x, out2.x, j);
-/*
-			pos.x = lerp_i(out1.x, out2.x, j);
-			pos.y = i;
-			pos.z = lerp_i(out1.z, out2.z, j);
-*/
-			pos = vec3i_lerp(out1, out2, j);
-			if(buf_getz(pos.x, pos.y) < pos.z)
-			{
-				uvpos = vec2i_lerp(uvout1, uvout2, phi);
-				color = t.data[uvpos.x+uvpos.y*t.width];
-				buf_setz(i,j,pos.z);
-				buf_px(i,j,color);
-			}
-		}
-	}
-	/*
-{
-		for(int j=minx;j<=maxx;j++)
 		{
 			if(out1.x == out2.x)
 				phi = 1.0f;
 			else
 				phi = lerp_inv_i(out1.x, out2.x, j);
 
-			pos = vec3i_lerp(out1, out2, phi);
-
-			if(buf_getz(pos.x,pos.y) < pos.z)
+			pos = (vec2i){j, a.y+i};
+			zfac = out1.z + (out2.z-out1.z)*phi;
+// fix: zfac float => int	
+			if(buf_getz(pos.x,pos.y) < zfac)
 			{
 				uvpos = vec2i_lerp(uvout1, uvout2, phi);
 
@@ -731,90 +697,68 @@ void unloadmodel(model m)
 void drawmodel_wire(model m, unsigned int color)
 {
 	vec3f in[CLIP_POINT_IN];
+	vec3f out[CLIP_POINT_OUT];
 	vec2f uvin[CLIP_POINT_IN];
-	vec3f out[CLIP_MAX_POINT];
-	vec2f uvout[CLIP_MAX_POINT];
-	int outcnt = 1;
+	vec2f uvout[CLIP_POINT_OUT];
+	int outcnt = 0;
+
+	vec2i ai;
+	vec2i bi;
+	vec2i ci;
 
 	vec3f a;
 	vec3f b;
 	vec3f c;
 	vec3f n;
 
-	vec2i ai;
-	vec2i bi;
-	vec2i ci;
-
-	vec3f l = (vec3f){0.0f,0.0f,1.0f};
+	const vec3f l = (vec3f){0.0f,0.0f,-1.0f};
 
 	float face = 0.0f;
 	unsigned int colorout;
 	for(int f=0;f<m.fcnt;f++)
 	{
-		a = m.vp[m.fm[f*3+0]];
-		b = m.vp[m.fm[f*3+1]];
-		c = m.vp[m.fm[f*3+2]];
-		n = m.fn[f];
+		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->fin);
+		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->fin);
+		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->fin);
+		n = vec_norm(vec_cross(vec_sub(c, a), vec_sub(b, a)));
+		face = vec_dot(n, l);
 
-		in[0] = vec_trans(a,CAMERA->fin);
-		in[1] = vec_trans(b,CAMERA->fin);
-		in[2] = vec_trans(c,CAMERA->fin);
+// pre-clip
+			ai = (vec2i){(int)in[0].x, (int)in[0].y};
+			bi = (vec2i){(int)in[1].x, (int)in[1].y};
+			ci = (vec2i){(int)in[2].x, (int)in[2].y};
+			colorout = color^0x555555;
+			line(ai,bi,colorout);
+			line(bi,ci,colorout);
+			line(ci,ai,colorout);
 
-		uvin[0] = (vec2f){0.0f, 0.0f};
-		uvin[1] = (vec2f){0.0f, 0.0f};
-		uvin[2] = (vec2f){0.0f, 0.0f};
-
-//		triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
-// DEBUG
-		for(int j=0;j<outcnt*3;j++)
+//memcpy(out, in, sizeof(vec3f) * 3);
+//outcnt = 1;
+triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+		for(int i=0; i < outcnt; i++)
 		{
-			out[j].x = (out[j].x+1.0f)*BUFFER.width/2;
-			out[j].y = (out[j].y+1.0f)*BUFFER.height/2;
-			out[j].z = (out[j].z+1.0f)*DEPTH;
-		}
-
-		for(int i=0;i<outcnt;i++)
-		{
-			n = vec_norm(vec_cross(vec_sub(out[i*3+2], out[i*3+0]),vec_sub(out[i*3+1], out[i*3+0])));
-			face = vec_dot(n,l);
-
-
 			ai = (vec2i){(int)out[i*3+0].x, (int)out[i*3+0].y};
 			bi = (vec2i){(int)out[i*3+1].x, (int)out[i*3+1].y};
 			ci = (vec2i){(int)out[i*3+2].x, (int)out[i*3+2].y};
 
 			if(face > 0.0f)
-			{
 				colorout = color;
-				line(ai,bi,colorout);
-				line(bi,ci,colorout);
-				line(ci,ai,colorout);
-			}
 			else
-			{
 				colorout = color^0xffffff;
-				line(ai,bi,colorout);
-				line(bi,ci,colorout);
-				line(ci,ai,colorout);
-			}
+			line(ai,bi,colorout);
+			line(bi,ci,colorout);
+			line(ci,ai,colorout);
 		}
 	}
 }
 void drawmodel_tex(model m, texture t)
 {
 	vec3f in[CLIP_POINT_IN];
+	vec3f out[CLIP_POINT_OUT];
 	vec2f uvin[CLIP_POINT_IN];
-	vec3f out[CLIP_MAX_POINT];
-	vec2f uvout[CLIP_MAX_POINT];
-	int outcnt = 1;
-
-	vec3f a;
-	vec3f b;
-	vec3f c;
+	vec2f uvout[CLIP_POINT_OUT];
+	
 	vec3f n;
-	vec2f uva;
-	vec2f uvb;
-	vec2f uvc;
 
 	vec3i ai;
 	vec3i bi;
@@ -823,73 +767,58 @@ void drawmodel_tex(model m, texture t)
 	vec2i uvbi;
 	vec2i uvci;
 
-	vec3f l = (vec3f){0.0f,0.0f,1.0f};
+	vec2f uva;
+	vec2f uvb;
+	vec2f uvc;
 
+	const vec3f l = (vec3f){0.0f,0.0f,-1.0f};
+
+	int outcnt = 0;
 	float face = 0.0f;
 	for(int f=0;f<m.fcnt;f++)
 	{
-		a = m.vp[m.fm[f*3+0]];
-		b = m.vp[m.fm[f*3+1]];
-		c = m.vp[m.fm[f*3+2]];
+		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->fin);
+		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->fin);
+		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->fin);
 		n = m.fn[f];
+		n = vec_norm(vec_cross(vec_sub(in[2], in[0]),vec_sub(in[1], in[0])));
+		face = vec_dot(n,l);
 
-		uva = m.vt[m.fm[f*3+0]];
-		uvb = m.vt[m.fm[f*3+1]];
-		uvc = m.vt[m.fm[f*3+2]];
-
-		in[0] = vec_trans(a,CAMERA->fin);
-		in[1] = vec_trans(b,CAMERA->fin);
-		in[2] = vec_trans(c,CAMERA->fin);
-
-		uvin[0] = uva;
-		uvin[1] = uvb;
-		uvin[2] = uvc;
-
-//		triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
-		memcpy(out, in, sizeof(vec3f) *3);
-		memcpy(uvout, uvin, sizeof(vec2f) *3);
-
-		for(int j=0;j<outcnt*3;j++)
-		{
-			out[j].x = (out[j].x+1.0f)*BUFFER.width/2;
-			out[j].y = (out[j].y+1.0f)*BUFFER.height/2;
-			out[j].z = (out[j].z+1.0f)*DEPTH;
-		}
-printf("%f %f %f\n%f %f %f\n%f %f %f\n", 
-             out[0].x,out[0].y,out[0].z,
-             out[1].x,out[1].y,out[1].z,
-             out[2].x,out[2].y,out[2].z);
-
-// DEBUG
-		if(f<1)
-		{
-			output[0] =  (vec3f){out[0].x,out[0].y,out[0].z};
-			output[1] =  (vec3f){out[1].x,out[1].y,out[1].z};
-			output[2] =  (vec3f){out[2].x,out[2].y,out[2].z};
-			outputi = outcnt;
-		}
-
-		for(int i=0;i<outcnt;i++)
+		if(face < 0.0f)
 		{
 
-			n = vec_norm(vec_cross(vec_sub(out[i*3+2], out[i*3+0]),vec_sub(out[i*3+1], out[i*3+0])));
-			face = vec_dot(n,l);
-
-			if(face > 0.0f)
+			uvin[0] = m.vt[m.fm[f*3+0]];
+			uvin[1] = m.vt[m.fm[f*3+1]];
+			uvin[2] = m.vt[m.fm[f*3+2]];
+if(in[0].z < 0.0f || in[1].z < 0.0f || in[2].z < 0.0f)
+	continue;
+memcpy(out, in, sizeof(vec3f) * 3);
+memcpy(uvout, uvin, sizeof(vec2f) * 3);
+outcnt = 1;
+			/*
+			triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+			printf("%f %f %f\n", in[0].z, in[1].z, in[2].z);
+			for(int i=0;i< outcnt;i++) {
+				printf("%f %f %f\n", out[3*i+0].z, out[3*i+1].z, out[3*i+2].z);
+			}
+			printf("outcnt: %i\n\n", outcnt);
+			*/
+			for(int i=0; i < outcnt; i++)
 			{
-				ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
-				bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
-				ci = (vec3i){out[i*3+2].x, out[i*3+2].y, out[i*3+2].z};
+				ai = (vec3i){out[0].x, out[0].y, out[0].z};
+				bi = (vec3i){out[1].x, out[1].y, out[1].z};
+				ci = (vec3i){out[2].x, out[2].y, out[2].z};
 
-				uvai = (vec2i){uvout[i*3+0].x*t.width, uvout[i*3+0].y*t.height};
-				uvbi = (vec2i){uvout[i*3+1].x*t.width, uvout[i*3+1].y*t.height};
-				uvci = (vec2i){uvout[i*3+2].x*t.width, uvout[i*3+2].y*t.height};
+				uva = uvout[0];
+				uvb = uvout[1];
+				uvc = uvout[2];
 
-				triangle_tex_i(ai, bi, ci, uvai, uvbi, uvci, face, t);
+				triangle_tex(ai,bi,ci,uva,uvb,uvc,face,t);
 			}
 		}
 	}
 }
+
 texture loadtga(const char *filename)
 {
 	texture out = {0};
@@ -950,7 +879,6 @@ void drawtex(texture t)
 	}
 }
 
-// see CLIP_MAX_POINT and CLIP_POINT_IN
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 {
 	if(posin[0].z <= 0.0f && posin[1].z <= 0.0f && posin[2].z <= 0.0f)
@@ -958,7 +886,8 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 		*cntout = 0;
 		return;
 	}
-	if(posin[0].z <= 0.0f)
+	/*
+	else if(posin[0].z <= 0.0f)
 	{
 		if(posin[1].z <= 0.0f)
 		{
@@ -994,6 +923,7 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 			return;
 		}
 	}
+	*/
 	else if(posin[2].z <= 0.0f)
 	{
 		*cntout = 2;
@@ -1004,12 +934,19 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 	{
 		memcpy(posout, posin, sizeof(vec3f) * CLIP_POINT_IN);
 		memcpy(uvout, uvin, sizeof(vec2f) * CLIP_POINT_IN);
+		*cntout = 1;
+		return;
 	}
 }
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout)
 {
+/*
 	float lerp1 = (-out.z) / (in1.z - out.z);
 	float lerp2 = (-out.z) / (in2.z - out.z);
+
+*/
+	float lerp1 = inv_lerp(out.z, in1.z, CLIP_NEAR);
+	float lerp2 = inv_lerp(out.z, in2.z, CLIP_NEAR);
 
 	posout[0] = vec3f_lerp(out, in1, lerp1);
 	posout[1] = in1;
@@ -1024,6 +961,21 @@ void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in
 	uvout[3] = vec2f_lerp(outuv, in2uv, lerp2);
 	uvout[4] = uvout[0];
 	uvout[5] = in2uv;
+
+printf("LERP:\n");
+	printf("1: %f\n", lerp1);
+	printf("2: %f\n", lerp2);
+printf("IN:\n");
+	printf("0: %f %f %f\n", in1.x,in1.y,in1.z);
+	printf("1: %f %f %f\n", in2.x,in2.y,in2.z);
+	printf("2: %f %f %f\n", out.x,out.y,out.z);
+printf("OUT:\n");
+	printf("0: %f %f %f\n", posout[0].x,posout[0].y,posout[0].z);
+	printf("1: %f %f %f\n", posout[1].x,posout[1].y,posout[1].z);
+	printf("2: %f %f %f\n", posout[2].x,posout[2].y,posout[2].z);
+	printf("3: %f %f %f\n", posout[3].x,posout[3].y,posout[3].z);
+	printf("4: %f %f %f\n", posout[4].x,posout[4].y,posout[4].z);
+	printf("5: %f %f %f\n", posout[5].x,posout[5].y,posout[5].z);
 }
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout)
 {
@@ -1210,6 +1162,42 @@ void vec3f_swap(vec3f *a, vec3f *b)
 	*b = tmp;
 }
 
+vec3f vec3f_lerp(vec3f a, vec3f b, float amt)
+{
+	vec3f out = {0};
+	out.x = lerp(a.x, b.x, amt);
+	out.y = lerp(a.y, b.y, amt);
+	out.z = lerp(a.z, b.z, amt);
+	return out;
+}
+vec3i vec3i_lerp(vec3i a, vec3i b, float amt)
+{
+	vec3i out = {0};
+	out.x = lerp_i(a.x, b.x, amt);
+	out.y = lerp_i(a.y, b.y, amt);
+	out.z = lerp_i(a.z, b.z, amt);
+	return out;
+}
+vec2f vec2f_lerp(vec2f a, vec2f b, float amt)
+{
+	vec2f out = {0};
+	out.x = lerp(a.x, b.x, amt);
+	out.y = lerp(a.y, b.y, amt);
+	return out;
+}
+float lerp(float a, float b, float amt)
+{
+	return (float)a+amt*(b-a);
+}
+float inv_lerp(float a, float b, float c)
+{
+	return (float)(c-a)/(b-a);
+}
+float lerp_i(int a, int b, float amt)
+{
+	return (int)(a+amt*(b-a));
+}
+
 mat4f mat_identity()
 {
 	mat4f out = {1.0f, 0.0f, 0.0f, 0.0f,
@@ -1223,11 +1211,11 @@ mat4f mat_viewport(int x, int y, int w, int h)
 	mat4f out = mat_identity();
 	out.m12 = x+w/2.0f;
 	out.m13 = y+h/2.0f;
-	out.m14 = DEPTH/2.0f;
+	out.m14 = DEPTH;
 
 	out.m0 = w/2.0f;
 	out.m5 = h/2.0f;
-	out.m10 = DEPTH/2.0f;
+	out.m10 = DEPTH;
 	return out;
 }
 mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)

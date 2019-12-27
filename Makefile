@@ -1,6 +1,6 @@
 CC = gcc 
 #CFLAGS = -std=c99 -Wall -O3 -march=native 
-CFLAGS = -std=c99 -Wall -ggdb -O0 -ftrapv
+CFLAGS = -std=c99 -Wall -ggdb 
 LDFLAGS = -lm
 OBJ = obj/render.o
 exe: render

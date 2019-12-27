@@ -11,5 +11,6 @@ Software renderer using libc and linux API.
 
 # TODO
 - homemade memory allocation
-- color palette
+- color palette/16-bit color
 - sanitize camera movement
+- clipping without breaking everything

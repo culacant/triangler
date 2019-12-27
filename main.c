@@ -17,9 +17,8 @@ int main()
 	camera cam = {0};
 	CAMERA = &cam;
 
-	CAMERA->pos = (vec3f){0.0f,0.0f,0.0f};
-//	CAMERA->target = (vec3f){0.0f,0.0f,0.0f};
-	CAMERA->angle = (vec2f){0.0f, 0.0f};
+	CAMERA->pos = (vec3f){0.0f,13.0f,0.0f};
+	CAMERA->angle = (vec2f){0.0f,0.0f};
 	camera_target_from_angle(CAMERA);
 	CAMERA->up = (vec3f){0.0f,1.0f,0.0f};
 
@@ -69,7 +68,7 @@ int main()
 		camera_update_mat(CAMERA);
 
 		drawmodel_tex(iqe,t);
-		drawmodel_wire(iqe, color_rgb(255,0,0));
+		drawmodel_wire(iqe, color_rgb(255,255,0));
 
 		sprintf(debug_text, "TIME: %i\npos: %f %f %f\ntar: %f %f %f\na: %f %f %f\nb:%f %f %f\nc: %f %f %f\nouti %i",
 							FRAMETIME,
