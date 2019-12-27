@@ -4,6 +4,9 @@
 *.swp
 *.old
 *.txt
+*.tga
+*.blend
+*.blend1
 *o
 obj/*
 test
