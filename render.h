@@ -194,7 +194,7 @@ void camera_free();
 
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
-void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color);
+//void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color);
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);
@@ -241,6 +241,7 @@ vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
 float lerp(float a, float b, float amt);
 float inv_lerp(float a, float b, float c);
 float lerp_i(int a, int b, float amt);
+float inv_lerp_i(int a, int b, int c);
 
 mat4f mat_identity();
 mat4f viewport(int x, int y, int w, int h);

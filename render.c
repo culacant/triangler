@@ -511,34 +511,22 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
 	{
 		half = i > b.y - a.y || b.y == a.y;
 		alpha = (float)i/(float)t_height;
-		out1.x = a.x+(c.x-a.x)*alpha;
-		out1.y = a.y+(c.y-a.y)*alpha;
-		out1.z = a.z+(c.z-a.z)*alpha;
-
-		uvout1.x = uva.x + (uvc.x-uva.x)*alpha;
-		uvout1.y = uva.y + (uvc.y-uva.y)*alpha;
+		out1 = vec3i_lerp(a, c, alpha);
+		uvout1 = vec2f_lerp(uva, uvc, alpha);
 
 		if(half)
 		{
 			s_height = c.y-b.y+1;
 			beta = (float) (i-(b.y-a.y))/s_height;
-			out2.x = b.x+(c.x-b.x)*beta;
-			out2.y = b.y+(c.y-b.y)*beta;
-			out2.z = b.z+(c.z-b.z)*beta;
-
-			uvout2.x = uvb.x + (uvc.x-uvb.x)*beta;
-			uvout2.y = uvb.y + (uvc.y-uvb.y)*beta;
+			out2 = vec3i_lerp(b, c, beta);
+			uvout2 = vec2f_lerp(uvb, uvc, beta);
 		}
 		else
 		{
 			s_height = b.y-a.y+1;
 			beta = (float)i/(float)s_height;
-			out2.x = a.x+(b.x-a.x)*beta;
-			out2.y = a.y+(b.y-a.y)*beta;
-			out2.z = a.z+(b.z-a.z)*beta;
-
-			uvout2.x = uva.x + (uvb.x-uva.x)*beta;
-			uvout2.y = uva.y + (uvb.y-uva.y)*beta;
+			out2 = vec3i_lerp(a, b, beta);
+			uvout2 = vec2f_lerp(uva, uvb, beta);
 		}
 
 		if(out1.x>out2.x)
@@ -564,6 +552,7 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
 				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
 				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
 // FIXME sanitize uv and remove these
+/*
 if(uvpos.x < 0.0f)
 	uvpos.x = 0.0f;
 if(uvpos.y < 0.0f)
@@ -572,6 +561,7 @@ if(uvpos.x > 1.0f)
 	uvpos.x = 1.0f;
 if(uvpos.y > 1.0f)
 	uvpos.y = 1.0f;
+*/
 
 				uvi.x = (int)(t.width*uvpos.x);
 				uvi.y = (int)(t.height*uvpos.y);
@@ -880,7 +870,7 @@ void drawtex(texture t)
 
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 {
-	if(posin[0].z <= 0.0f && posin[1].z <= 0.0f && posin[2].z <= 0.0f)
+	if(posin[0].z <= CLIP_NEAR && posin[1].z <= CLIP_NEAR && posin[2].z <= CLIP_NEAR)
 	{
 		*cntout = 0;
 		return;
@@ -923,7 +913,7 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 		}
 	}
 	*/
-	else if(posin[2].z <= 0.0f)
+	else if(posin[2].z <= CLIP_NEAR)
 	{
 		*cntout = 2;
 		triangle_clip_single(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);
@@ -1180,6 +1170,10 @@ float inv_lerp(float a, float b, float c)
 float lerp_i(int a, int b, float amt)
 {
 	return (int)(a+amt*(b-a));
+}
+float inv_lerp_i(int a, int b, int c)
+{
+	return (float)(c-a)/(b-a);
 }
 
 mat4f mat_identity()
