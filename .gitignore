@@ -9,6 +9,7 @@
 *.blend1
 *o
 obj/*
+graph
 test
 cachegrind*
 callgrind*
