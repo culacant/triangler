@@ -1159,6 +1159,16 @@ vec2f vec2f_lerp(vec2f a, vec2f b, float amt)
 	out.y = lerp(a.y, b.y, amt);
 	return out;
 }
+vec4f vec4f_lerp(vec4f a, vec4f b, float amt)
+{
+       vec4f out = {0};
+       out.x = lerp(a.x, b.x, amt);
+       out.y = lerp(a.y, b.y, amt);
+       out.z = lerp(a.z, b.z, amt);
+       out.w = lerp(a.z, b.z, amt);
+       return out;
+}
+
 float lerp(float a, float b, float amt)
 {
 	return (float)a+amt*(b-a);
@@ -1276,8 +1286,25 @@ unsigned int brighten(unsigned int c, float b)
 
 void print_mat(mat4f m)
 {
+    printf("MAT4F:\n");
 	printf("%f %f %f %f\n", m.m0, m.m4, m.m8, m.m12);
 	printf("%f %f %f %f\n", m.m1, m.m5, m.m9, m.m13);
 	printf("%f %f %f %f\n", m.m2, m.m6, m.m10, m.m14);
 	printf("%f %f %f %f\n", m.m3, m.m7, m.m11, m.m15);
 }
+void print_vec3f( vec3f v)
+{
+	printf("VEC3F:\n");
+	printf("%f %f %f\n", v.x, v.y, v.z);
+}
++void print_vec3i( vec3i v)
+{
+   printf("VEC3I:\n");
+   printf("%i %i %i\n", v.x, v.y, v.z);
+}
+void print_vec4f( vec4f v)
+{
+   printf("VEC4F:\n");
+   printf("%f %f %f %f\n", v.x, v.y, v.z, v.w);
+}
+

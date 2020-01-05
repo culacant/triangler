@@ -238,6 +238,7 @@ void vec3f_swap(vec3f *a, vec3f *b);
 vec3f vec3f_lerp(vec3f a, vec3f b, float amt);
 vec3i vec3i_lerp(vec3i a, vec3i b, float amt);
 vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
+vec4f vec4f_lerp(vec4f a, vec4f b, float amt)
 float lerp(float a, float b, float amt);
 float inv_lerp(float a, float b, float c);
 float lerp_i(int a, int b, float amt);
@@ -252,9 +253,11 @@ unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b);
 unsigned int brighten(unsigned int c, float b);
 
 void print_mat(mat4f m);
+void print_vec3f(vec3f v);
+void print_vec3i(vec3i v);
+void print_vec4f(vec4f v);
 
 BUFF BUFFER;
 INPUT INPUTS;
-MATS MATRICES;
 camera *CAMERA;
 int FRAMETIME;
