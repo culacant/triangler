@@ -258,8 +258,9 @@ int input_mouse_absy()
 
 void camera_update_mat(camera *cam)
 {
-	cam->fin = mat_mul(cam->proj, cam->vp);
-	cam->fin = mat_mul(cam->mv, cam->fin);
+// standard: mv*proj*vp
+	cam->fin = mat_mul(cam->mv, cam->proj);
+	cam->fin = mat_mul(cam->fin, cam->vp);
 }
 void camera_angle_from_target(camera *cam)
 {
@@ -1194,7 +1195,7 @@ mat4f mat_identity()
 				 0.0f, 0.0f, 0.0f, 1.0f};
 	return out;
 }
-mat4f viewport(int x, int y, int w, int h)
+mat4f mat_viewport(int x, int y, int w, int h)
 {
 	mat4f out = mat_identity();
 	out.m12 = x+w/2.0f;
@@ -1297,7 +1298,7 @@ void print_vec3f( vec3f v)
 	printf("VEC3F:\n");
 	printf("%f %f %f\n", v.x, v.y, v.z);
 }
-+void print_vec3i( vec3i v)
+void print_vec3i( vec3i v)
 {
    printf("VEC3I:\n");
    printf("%i %i %i\n", v.x, v.y, v.z);

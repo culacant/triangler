@@ -25,7 +25,7 @@ int main()
 	CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
     CAMERA->proj = mat_identity();
 	CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
-    CAMERA->vp = viewport(BUFFER.width/8, BUFFER.height/8, BUFFER.width*(16/9), BUFFER.height*(16/9));
+    CAMERA->vp = mat_viewport(BUFFER.width/8, BUFFER.height/8, BUFFER.width*(16/9), BUFFER.height*(16/9));
 
 	camera_update_mat(CAMERA);
 
