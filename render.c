@@ -258,9 +258,8 @@ int input_mouse_absy()
 
 void camera_update_mat(camera *cam)
 {
-// standard: mv*proj*vp
-	cam->fin = mat_mul(cam->mv, cam->proj);
-	cam->fin = mat_mul(cam->fin, cam->vp);
+// clip space = mv
+	cam->fin = mat_mul(cam->proj, cam->vp);
 }
 void camera_angle_from_target(camera *cam)
 {
@@ -705,31 +704,23 @@ void drawmodel_wire(model m, unsigned int color)
 	vec3f n;
 
 	const vec3f l = (vec3f){0.0f,0.0f,-1.0f};
-
 	float face = 0.0f;
 	unsigned int colorout;
 	for(int f=0;f<m.fcnt;f++)
 	{
-		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->fin);
-		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->fin);
-		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->fin);
+		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->mv);
+		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->mv);
+		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->mv);
 		n = vec_norm(vec_cross(vec_sub(c, a), vec_sub(b, a)));
 		face = vec_dot(n, l);
 
-// pre-clip
-			ai = (vec2i){(int)in[0].x, (int)in[0].y};
-			bi = (vec2i){(int)in[1].x, (int)in[1].y};
-			ci = (vec2i){(int)in[2].x, (int)in[2].y};
-			colorout = color^0x555555;
-			line(ai,bi,colorout);
-			line(bi,ci,colorout);
-			line(ci,ai,colorout);
-
-//memcpy(out, in, sizeof(vec3f) * 3);
-//outcnt = 1;
-triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+		triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
 		for(int i=0; i < outcnt; i++)
 		{
+			out[i*3+0] = vec_trans(out[i*3+0], CAMERA->fin);
+			out[i*3+1] = vec_trans(out[i*3+1], CAMERA->fin);
+			out[i*3+2] = vec_trans(out[i*3+2], CAMERA->fin);
+
 			ai = (vec2i){(int)out[i*3+0].x, (int)out[i*3+0].y};
 			bi = (vec2i){(int)out[i*3+1].x, (int)out[i*3+1].y};
 			ci = (vec2i){(int)out[i*3+2].x, (int)out[i*3+2].y};
@@ -767,11 +758,12 @@ void drawmodel_tex(model m, texture t)
 	float face = 0.0f;
 	for(int f=0;f<m.fcnt;f++)
 	{
-		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->fin);
-		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->fin);
-		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->fin);
-		n = m.fn[f];
-		n = vec_norm(vec_cross(vec_sub(in[2], in[0]),vec_sub(in[1], in[0])));
+		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->mv);
+		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->mv);
+		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->mv);
+
+//		n = vec_norm(vec_cross(vec_sub(in[2], in[0]),vec_sub(in[1], in[0])));
+		n = m.vn[f];
 		face = vec_dot(n,l);
 
 		if(face < 0.0f)
@@ -780,28 +772,23 @@ void drawmodel_tex(model m, texture t)
 			uvin[0] = m.vt[m.fm[f*3+0]];
 			uvin[1] = m.vt[m.fm[f*3+1]];
 			uvin[2] = m.vt[m.fm[f*3+2]];
-if(in[0].z < 0.0f || in[1].z < 0.0f || in[2].z < 0.0f)
-	continue;
-memcpy(out, in, sizeof(vec3f) * 3);
-memcpy(uvout, uvin, sizeof(vec2f) * 3);
-outcnt = 1;
-			/*
+
 			triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
-			printf("%f %f %f\n", in[0].z, in[1].z, in[2].z);
-			for(int i=0;i< outcnt;i++) {
-				printf("%f %f %f\n", out[3*i+0].z, out[3*i+1].z, out[3*i+2].z);
-			}
-			printf("outcnt: %i\n\n", outcnt);
-			*/
+
 			for(int i=0; i < outcnt; i++)
 			{
-				ai = (vec3i){out[0].x, out[0].y, out[0].z};
-				bi = (vec3i){out[1].x, out[1].y, out[1].z};
-				ci = (vec3i){out[2].x, out[2].y, out[2].z};
+				
+				out[i*3+0] = vec_trans(out[i*3+0], CAMERA->fin);
+				out[i*3+1] = vec_trans(out[i*3+1], CAMERA->fin);
+				out[i*3+2] = vec_trans(out[i*3+2], CAMERA->fin);
 
-				uva = uvout[0];
-				uvb = uvout[1];
-				uvc = uvout[2];
+				ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
+				bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
+				ci = (vec3i){out[i*3+2].x, out[i*3+2].y, out[i*3+2].z};
+
+				uva = uvout[i*2+0];
+				uvb = uvout[i*2+1];
+				uvc = uvout[i*2+2];
 
 				triangle_tex(ai,bi,ci,uva,uvb,uvc,face,t);
 			}
@@ -871,21 +858,20 @@ void drawtex(texture t)
 
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 {
-	if(posin[0].z <= CLIP_NEAR && posin[1].z <= CLIP_NEAR && posin[2].z <= CLIP_NEAR)
+	if(posin[0].z >= CLIP_NEAR && posin[1].z >= CLIP_NEAR && posin[2].z >= CLIP_NEAR)
 	{
 		*cntout = 0;
 		return;
 	}
-	/*
-	else if(posin[0].z <= 0.0f)
+	else if(posin[0].z >= CLIP_NEAR)
 	{
-		if(posin[1].z <= 0.0f)
+		if(posin[1].z >= CLIP_NEAR)
 		{
 			*cntout = 1;
 			triangle_clip_double(posin[2], posin[0], posin[1], uvin[2], uvin[0], uvin[1], posout, uvout);
 			return;
 		}
-		else if(posin[2].z <= 0.0f)
+		else if(posin[2].z >= CLIP_NEAR)
 		{
 			*cntout = 1;
 			triangle_clip_double(posin[1], posin[0], posin[2], uvin[1], uvin[0], uvin[2], posout, uvout);
@@ -898,9 +884,9 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 			return;
 		}
 	}
-	else if(posin[1].z <= 0.0f)
+	else if(posin[1].z >= CLIP_NEAR)
 	{
-		if(posin[2].z <= 0.0f)
+		if(posin[2].z >= CLIP_NEAR)
 		{
 			*cntout = 1;
 			triangle_clip_double(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);
@@ -913,8 +899,7 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 			return;
 		}
 	}
-	*/
-	else if(posin[2].z <= CLIP_NEAR)
+	else if(posin[2].z >= CLIP_NEAR)
 	{
 		*cntout = 2;
 		triangle_clip_single(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);
@@ -930,17 +915,13 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 }
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout)
 {
-/*
-	float lerp1 = (-out.z) / (in1.z - out.z);
-	float lerp2 = (-out.z) / (in2.z - out.z);
-
-*/
 	float lerp1 = inv_lerp(out.z, in1.z, CLIP_NEAR);
 	float lerp2 = inv_lerp(out.z, in2.z, CLIP_NEAR);
 
 	posout[0] = vec3f_lerp(out, in1, lerp1);
 	posout[1] = in1;
 	posout[2] = in2;
+
 	uvout[0] = vec2f_lerp(outuv, in1uv, lerp1);
 	uvout[1] = in1uv;
 	uvout[2] = in2uv;
@@ -948,34 +929,20 @@ void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in
 	posout[3] = vec3f_lerp(out, in2, lerp2);
 	posout[4] = posout[0];
 	posout[5] = in2;
+
 	uvout[3] = vec2f_lerp(outuv, in2uv, lerp2);
 	uvout[4] = uvout[0];
 	uvout[5] = in2uv;
-
-printf("LERP:\n");
-	printf("1: %f\n", lerp1);
-	printf("2: %f\n", lerp2);
-printf("IN:\n");
-	printf("0: %f %f %f\n", in1.x,in1.y,in1.z);
-	printf("1: %f %f %f\n", in2.x,in2.y,in2.z);
-	printf("2: %f %f %f\n", out.x,out.y,out.z);
-printf("OUT:\n");
-	printf("0: %f %f %f\n", posout[0].x,posout[0].y,posout[0].z);
-	printf("1: %f %f %f\n", posout[1].x,posout[1].y,posout[1].z);
-	printf("2: %f %f %f\n", posout[2].x,posout[2].y,posout[2].z);
-	printf("3: %f %f %f\n", posout[3].x,posout[3].y,posout[3].z);
-	printf("4: %f %f %f\n", posout[4].x,posout[4].y,posout[4].z);
-	printf("5: %f %f %f\n", posout[5].x,posout[5].y,posout[5].z);
-
 }
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout)
 {
-	float lerp1 = (-out1.z) / (in.z - out1.z);
-	float lerp2 = (-out2.z) / (in.z - out2.z);
+	float lerp1 = inv_lerp(out1.z, in.z, CLIP_NEAR);
+	float lerp2 = inv_lerp(out2.z, in.z, CLIP_NEAR);
 
 	posout[0] = vec3f_lerp(out1, in, lerp1);
 	posout[1] = vec3f_lerp(out2, in, lerp2);
 	posout[2] = in;
+
 	uvout[0] = vec2f_lerp(out1uv, inuv, lerp1);
 	uvout[1] = vec2f_lerp(out2uv, inuv, lerp2);
 	uvout[2] = inuv;

@@ -41,7 +41,7 @@
 
 #define CLIP_POINT_IN 	3
 #define CLIP_POINT_OUT 	6
-#define CLIP_NEAR		0.1f
+#define CLIP_NEAR		-0.1f
 
 #define NUMBUFF 2
 
