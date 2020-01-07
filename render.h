@@ -162,6 +162,7 @@ typedef struct MATS
 	mat4f fin;
 } MATS;
 
+// render.c functions
 void buf_init();
 void buf_free();
 void buf_flush();
@@ -212,6 +213,7 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout);
 
+// math.c functions
 vec3f vec_cross(vec3f a, vec3f b);
 float vec_dot(vec3f a, vec3f b);
 float vec_len(vec3f a);
@@ -246,6 +248,7 @@ mat4f mat_viewport(int x, int y, int w, int h);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 
+// render.c functions
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
 unsigned int brighten(unsigned int c, float b);
 

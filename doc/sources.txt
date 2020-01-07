@@ -1,0 +1,5 @@
+https://github.com/ssloy/tinyrenderer/wiki
+http://glasnost.itcarlow.ie/~powerk/GeneralGraphicsNotes/projection/viewport_transformation.html
+https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/building-basic-perspective-projection-matrix?url=3d-basic-rendering/perspective-and-orthographic-projection-matrix/building-basic-perspective-projection-matrix
+https://www.songho.ca/opengl/gl_projectionmatrix.html#perspective
+https://www.songho.ca/opengl/gl_transform.html
