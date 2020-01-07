@@ -252,34 +252,31 @@ mat4f mat_mul(mat4f a, mat4f b)
 }
 mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 {
-// TODO: optimize
-	mat4f minv = mat_identity();
-	mat4f tr = mat_identity();
+	mat4f out = mat_identity();
 
 	vec3f z = vec_norm(vec_sub(pos, tar));
 	vec3f x = vec_norm(vec_cross(up, z));
 	vec3f y = vec_norm(vec_cross(z,x));
 
-	minv.m0 = x.x;
-	minv.m1 = y.x;
-	minv.m2 = z.x;
-	minv.m3 = 0.0f;
+	out.m0 = x.x;
+	out.m1 = y.x;
+	out.m2 = z.x;
+	out.m3 = 0.0f;
 
-	minv.m4 = x.y;
-	minv.m5 = y.y;
-	minv.m6 = z.y;
-	minv.m7 = 0.0f;
+	out.m4 = x.y;
+	out.m5 = y.y;
+	out.m6 = z.y;
+	out.m7 = 0.0f;
 
-	minv.m8 = x.z;
-	minv.m9 = y.z;
-	minv.m10 = z.z;
-	minv.m11 = 0.0f;
+	out.m8 = x.z;
+	out.m9 = y.z;
+	out.m10 = z.z;
+	out.m11 = 0.0f;
 
-	tr.m12 = -tar.x;
-	tr.m13 = -tar.y;
-	tr.m14 = -tar.z;
-
-	mat4f out = mat_mul(tr,minv);
+	out.m12 = -tar.x*x.x + -tar.y*x.y + -tar.z*x.z;
+	out.m13 = -tar.x*y.x + -tar.y*y.y + -tar.z*y.z;
+	out.m14 = -tar.x*z.x + -tar.y*z.y + -tar.z*z.z;
+	out.m15 = 1.0f;
 
 	return out;
 }
