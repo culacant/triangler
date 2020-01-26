@@ -1,10 +1,13 @@
-#include "render.h"
 #include <unistd.h>
+
+// single compilation unit
+#include "math.c"
+#include "render.c"
 
 int main()
 {
 	char debug_text[256];
-	texture t = loadtga("res/layout.tga");
+	texture t = loadtga("res/head.tga");
 	model iqe = loadiqe("res/cube.iqe");
 	/*
 	texture t2 = loadtga("res/head256.tga");

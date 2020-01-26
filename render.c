@@ -16,14 +16,11 @@ void buf_init()
 		printf("ERROR: cannot open TTY: %s\n", TTY_NAME);
 		return;
 	}
-// TODO: uncomment when things stop crashing
-/*
 	if(ioctl(BUFFER.tty, KDSETMODE, KD_GRAPHICS) == -1)
 	{
 		printf("ERROR: cannot set graphics mode on TTY: %s\n", TTY_NAME);
 		return;
 	}
-*/
 	if(ioctl(BUFFER.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
 	{
 		printf("ERROR: get screen info failed: %s\n", strerror(errno));
@@ -34,20 +31,15 @@ void buf_init()
 	BUFFER.width = sinfo.xres;
 	BUFFER.height = sinfo.yres;
 
-	BUFFER.buf = mmap(NULL, 4*BUFFER.width*BUFFER.height, PROT_READ | PROT_WRITE, MAP_SHARED, BUFFER.fd, 0);
-	if(BUFFER.buf == NULL)
+	BUFFER.fb = mmap(NULL, 4*BUFFER.width*BUFFER.height, PROT_READ | PROT_WRITE, MAP_SHARED, BUFFER.fd, 0);
+	if(BUFFER.fb == NULL)
 	{
 		printf("ERROR: mmap framebuffer failed\n");
 		close(BUFFER.fd);
 		return;
 	}
 
-	BUFFER.bufcnt = NUMBUFF;
-	BUFFER.curbuf = 0;
-	BUFFER.buffers = malloc(sizeof(unsigned int *) * BUFFER.bufcnt);
-
-	for(int i=0;i<BUFFER.bufcnt;i++)
-		BUFFER.buffers[i] = calloc(BUFFER.width*BUFFER.height, sizeof(unsigned int));
+	BUFFER.buf = calloc(BUFFER.width*BUFFER.height, sizeof(unsigned int));
 
 	BUFFER.zbuf = malloc(sizeof(int) * BUFFER.width*BUFFER.height);
 	BUFFER.zbufmin = malloc(sizeof(int) * BUFFER.width*BUFFER.height);
@@ -60,12 +52,10 @@ void buf_init()
 }
 void buf_free()
 {
-	for(int i=0;i<BUFFER.bufcnt;i++)
-		free(BUFFER.buffers[i]);
-	free(BUFFER.buffers);
+	free(BUFFER.buf);
 	free(BUFFER.zbuf);
 	free(BUFFER.zbufmin);
-	munmap(BUFFER.buf,4*BUFFER.width*BUFFER.height);
+	munmap(BUFFER.fb, 4*BUFFER.width*BUFFER.height);
 
 	if(ioctl(BUFFER.tty, KDSETMODE, KD_TEXT) == -1)
 	{
@@ -77,13 +67,10 @@ void buf_free()
 }
 void buf_flush()
 {
-	memcpy(BUFFER.buf, BUFFER.buffers[BUFFER.curbuf], sizeof(unsigned int)*BUFFER.width*BUFFER.height);
-	memset(BUFFER.buffers[BUFFER.curbuf], 0, sizeof(unsigned int)*BUFFER.width*BUFFER.height);
+	memcpy(BUFFER.fb, BUFFER.buf, sizeof(unsigned int)*BUFFER.width*BUFFER.height);
+	memset(BUFFER.buf, 0, sizeof(unsigned int)*BUFFER.width*BUFFER.height);
 	memcpy(BUFFER.zbuf, BUFFER.zbufmin, sizeof(int)*BUFFER.width*BUFFER.height);
 
-	BUFFER.curbuf += 1;
-	if(BUFFER.curbuf >= BUFFER.bufcnt)
-		BUFFER.curbuf = 0;
 	frametime_update();
 
 }
@@ -91,7 +78,7 @@ void buf_px(int x, int y, unsigned int color)
 {
 	if(x<0 || y<0 || x>=BUFFER.width || y>=BUFFER.height)
 		return;
-	BUFFER.buffers[BUFFER.curbuf][y*BUFFER.width+x] = color;
+	BUFFER.buf[y*BUFFER.width+x] = color;
 }
 int buf_getz(int x, int y)
 {
@@ -551,17 +538,6 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
 			{
 				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
 				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
-// FIXME sanitize uv and remove these
-/*
-if(uvpos.x < 0.0f)
-	uvpos.x = 0.0f;
-if(uvpos.y < 0.0f)
-	uvpos.y = 0.0f;
-if(uvpos.x > 1.0f)
-	uvpos.x = 1.0f;
-if(uvpos.y > 1.0f)
-	uvpos.y = 1.0f;
-*/
 
 				uvi.x = (int)(t.width*uvpos.x);
 				uvi.y = (int)(t.height*uvpos.y);
@@ -583,23 +559,6 @@ void rect(vec2i a, vec2i b, unsigned int color)
 			buf_px(x,y,color);
 		}
 	}
-}
-int triangle_in_viewport(vec3i a, vec3i b, vec3i c)
-{
-// FIXME NEED TESTS still droppin triangles
-	if((a.z < 0) && (b.z < 0) && (c.z < 0))
-		return 0;
-	if((a.y < 0) && (b.y < 0) && (c.y < 0))
-		return 0;
-	if((a.y > BUFFER.height) && (b.y > BUFFER.height) && (c.y > BUFFER.height))
-		return 0;
-
-	if((a.x < 0) && (b.x < 0) && (c.x < 0))
-		return 0;
-	if((a.x > BUFFER.width) && (b.x > BUFFER.width) && (c.x > BUFFER.width))
-		return 0;
-
-	return 1;
 }
 
 model loadiqe(const char *filename)

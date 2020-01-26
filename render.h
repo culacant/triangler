@@ -1,5 +1,5 @@
-// for time
-#define _POSIX_C_SOURCE 199309L
+#ifndef RENDER_H
+#define RENDER_H
 
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -42,8 +42,6 @@
 #define CLIP_POINT_IN 	3
 #define CLIP_POINT_OUT 	6
 #define CLIP_NEAR		-0.1f
-
-#define NUMBUFF 2
 
 #define PI 3.14159265358979323846
 
@@ -133,12 +131,10 @@ typedef struct BUFF
 {
 	unsigned int width;
 	unsigned int height;
-	unsigned int *buf;
+	unsigned int *fb;
 	int tty;
 	int fd;
-	int curbuf;
-	int bufcnt;
-	unsigned int **buffers;
+	unsigned int *buf;
 	int *zbuf;
 	int *zbufmin;
 } BUFF;
@@ -198,7 +194,6 @@ void line_dot(vec2i a, vec2i b, unsigned int color);
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);
-int triangle_in_viewport(vec3i a, vec3i b, vec3i c);
 
 model loadiqe(const char *filename);
 void unloadmodel(model m);
@@ -261,3 +256,5 @@ BUFF BUFFER;
 INPUT INPUTS;
 camera *CAMERA;
 int FRAMETIME;
+
+#endif // RENDER_H

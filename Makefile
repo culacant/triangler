@@ -1,11 +1,8 @@
 CC = gcc 
-#CFLAGS = -std=c99 -Wall -O3 -march=native 
-CFLAGS = -std=c99 -Wall -ggdb 
+#CFLAGS = -std=c99 -Wall -O3 -march=native -D_POSIX_SOURCE -D_GNU_SOURCE
+# -D_* for time functions (#define _POSIX_C_SOURCE 199309L)
+CFLAGS = -std=c99 -Wall -ggdb  -D_POSIX_SOURCE -D_GNU_SOURCE
 LDFLAGS = -lm
-OBJ = obj/render.o obj/math.o
-exe: render math
-	$(CC) main.c -o render.exe $(OBJ) $(CFLAGS) $(LDFLAGS)
-render: render.c
-	$(CC) -c render.c -o obj/render.o $(CFLAGS)
-math: math.c
-	$(CC) -c math.c -o obj/math.o $(CFLAGS)
+
+exe: 
+	$(CC) main.c -o render.exe $(CFLAGS) $(LDFLAGS)
