@@ -206,6 +206,19 @@ float inv_lerp_i(int a, int b, int c)
 	return (float)(c-a)/(b-a);
 }
 
+int clamp_i(int a, int min, int max)
+{
+	if(a <= min)
+		return min;
+	else if(a >= max)
+		return max;
+	return a;
+}
+float wrap_one_f(float a)
+{
+	return a - floorf(a);
+}
+
 mat4f mat_identity()
 {
 	mat4f out = {1.0f, 0.0f, 0.0f, 0.0f,

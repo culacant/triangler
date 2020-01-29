@@ -238,6 +238,9 @@ float inv_lerp(float a, float b, float c);
 float lerp_i(int a, int b, float amt);
 float inv_lerp_i(int a, int b, int c);
 
+int clamp_i(int a, int min, int max);
+float wrap_one_f(float a);
+
 mat4f mat_identity();
 mat4f mat_viewport(int x, int y, int w, int h);
 mat4f mat_mul(mat4f a, mat4f b);

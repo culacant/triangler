@@ -16,11 +16,13 @@ void buf_init()
 		printf("ERROR: cannot open TTY: %s\n", TTY_NAME);
 		return;
 	}
+	/*
 	if(ioctl(BUFFER.tty, KDSETMODE, KD_GRAPHICS) == -1)
 	{
 		printf("ERROR: cannot set graphics mode on TTY: %s\n", TTY_NAME);
 		return;
 	}
+	*/
 	if(ioctl(BUFFER.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
 	{
 		printf("ERROR: get screen info failed: %s\n", strerror(errno));
@@ -458,98 +460,136 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 }
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
-	vec2i pos;
-	vec2f uvpos;
-	vec2i uvi;
-	vec2f uvout1;
-	vec2f uvout2;
-	vec3i out1;
-	vec3i out2;
-	int t_height;
-	int s_height;
-	float alpha;
-	float beta;
-	float phi;
-	float zfac;
-	unsigned int color;
-	int half;
+    int t_height;
+    int s_height;
+    float alpha;
+    float beta;
+    float phi;
+    vec3i out1;
+    vec3i out2;
+    vec2f uvout1;
+    vec2f uvout2;
 
-	if((a.y == b.y) && (a.y == c.y))
-		return;
-	if(a.y>b.y)
-	{
-		vec3i_swap(&a, &b);
-		vec2f_swap(&uva, &uvb);
-	}
-	if(a.y>c.y)
-	{
-		vec3i_swap(&a, &c);
-		vec2f_swap(&uva, &uvc);
-	}
-	if(b.y>c.y)
-	{
-		vec3i_swap(&b, &c);
-		vec2f_swap(&uvb, &uvc);
-	}
+    vec3i pos;
+    vec2f uvpos;
+    vec2i uvi;
 
-	t_height = c.y-a.y+1;
+	int miny;
+	int maxy;
+	int minx;
+	int maxx;
 
-	for(int i=0;i<t_height;i++)
-	{
-		half = i > b.y - a.y || b.y == a.y;
-		alpha = (float)i/(float)t_height;
-		out1 = vec3i_lerp(a, c, alpha);
-		uvout1 = vec2f_lerp(uva, uvc, alpha);
+	int color;
 
-		if(half)
-		{
-			s_height = c.y-b.y+1;
-			beta = (float) (i-(b.y-a.y))/s_height;
-			out2 = vec3i_lerp(b, c, beta);
-			uvout2 = vec2f_lerp(uvb, uvc, beta);
-		}
-		else
-		{
-			s_height = b.y-a.y+1;
-			beta = (float)i/(float)s_height;
-			out2 = vec3i_lerp(a, b, beta);
-			uvout2 = vec2f_lerp(uva, uvb, beta);
-		}
+    if((a.y == b.y) && (a.y == c.y))
+        return;
+    if(a.y>b.y)
+    {   
+        vec3i_swap(&a, &b);
+        vec2f_swap(&uva, &uvb);
+    }   
+    if(a.y>c.y)
+    {   
+        vec3i_swap(&a, &c);
+        vec2f_swap(&uva, &uvc);
+    }   
+    if(b.y>c.y)
+    {   
+        vec3i_swap(&b, &c);
+        vec2f_swap(&uvb, &uvc);
+    }   
 
-		if(out1.x>out2.x)
-		{
-			vec3i_swap(&out1, &out2);
-			vec2f_swap(&uvout1, &uvout2);
-		}
+    t_height = c.y-a.y;
 
-		for(int j=out1.x;j<=out2.x;j++)
-		{
-			if(j<0 || j>=BUFFER.width)
-				continue;
-			if(out1.x == out2.x)
-				phi = 1.0f;
-			else
-				phi = (float)(j-out1.x)/(out2.x-out1.x);
+// upper half
+	miny = clamp_i(a.y, 0, BUFFER.height-1);
+	maxy = clamp_i(b.y, 0, BUFFER.height-1);
+    for(int y=miny; y <= maxy;y++)
+    {   
+        s_height = b.y-a.y+1;   
+        if(s_height == 0)
+            continue;
+        alpha = (float) (y-a.y)/t_height;
+        beta = (float) (y-a.y)/s_height;
 
-			pos = (vec2i){j, a.y+i};
-			zfac = out1.z + (out2.z-out1.z)*phi;
-// fix: zfac float => int	
-			if(buf_getz(pos.x,pos.y) < zfac)
-			{
-				uvpos.x = uvout1.x + (uvout2.x-uvout1.x)*phi;
-				uvpos.y = uvout1.y + (uvout2.y-uvout1.y)*phi;
+        out1 = vec3i_lerp(a,c, alpha);
+        out2 = vec3i_lerp(a,b, beta);
+        uvout1 = vec2f_lerp(uva,uvc, alpha);
+        uvout2 = vec2f_lerp(uva,uvb, alpha);
+        if(out1.x > out2.x)
+        {
+            vec3i_swap(&out1, &out2);
+            vec2f_swap(&uvout1, &uvout2);
+        }
 
-				uvi.x = (int)(t.width*uvpos.x);
-				uvi.y = (int)(t.height*uvpos.y);
+		minx = clamp_i(out1.x, 0, BUFFER.width-1);
+		maxx = clamp_i(out2.x, 0, BUFFER.width-1);
+        for(int j = minx; j <= maxx; j++)
+        {
+            if(minx == maxx)
+                phi = 1.0f;
+            else
+                phi = inv_lerp_i(minx, maxx, j);
+            pos = (vec3i){j, y, lerp_i(j, out2.z, phi)};
+            uvpos = vec2f_lerp(uvout1, uvout2, phi);
 
+// TODO: optimize
+			uvpos.x = wrap_one_f(uvpos.x);
+			uvpos.y = wrap_one_f(uvpos.y);
 
-				color = t.data[uvi.x+uvi.y*t.width];
-				buf_setz(pos.x,pos.y,zfac);
-				buf_px(pos.x,pos.y,color);
-			}
-		}
-	}
+            uvi.x = (int)(t.width*uvpos.x);
+            uvi.y = (int)(t.height*uvpos.y);
+
+            color = t.data[uvi.x+uvi.y*t.width];
+            buf_setz(pos.x, pos.y, pos.z);
+            buf_px(pos.x, pos.y, color);
+        }
+    }
+// lower half
+	miny = clamp_i(b.y, 0, BUFFER.height-1);
+	maxy = clamp_i(c.y, 0, BUFFER.height-1);
+    for(int y=miny; y <= maxy;y++)
+    {
+        s_height = c.y-b.y+1;
+        if(s_height == 0)
+            continue;
+        alpha = (float) (y-a.y)/t_height;
+        beta = (float) (y-b.y)/s_height;
+
+        out1 = vec3i_lerp(a,c, alpha);
+        out2 = vec3i_lerp(b,c, beta);
+        uvout1 = vec2f_lerp(uva,uvc, alpha);
+        uvout2 = vec2f_lerp(uvb,uvc, alpha);
+        if(out1.x > out2.x)
+        {
+            vec3i_swap(&out1, &out2);
+            vec2f_swap(&uvout1, &uvout2);
+        }
+
+		minx = clamp_i(out1.x, 0, BUFFER.width-1);
+		maxx = clamp_i(out2.x, 0, BUFFER.width-1);
+        for(int j = minx; j <= maxx; j++)
+        {
+            if(minx == maxx)
+                phi = 1.0f;
+            else
+                phi = inv_lerp_i(minx, maxx, j);
+            pos = (vec3i){j, y, lerp_i(j, out2.z, phi)};
+            uvpos = vec2f_lerp(uvout1, uvout2, phi);
+// TODO: optimize
+			uvpos.x = wrap_one_f(uvpos.x);
+			uvpos.y = wrap_one_f(uvpos.y);
+
+            uvi.x = (int)(t.width*uvpos.x);
+            uvi.y = (int)(t.height*uvpos.y);
+
+            color = t.data[uvi.x+uvi.y*t.width];
+            buf_setz(pos.x, pos.y, pos.z);
+            buf_px(pos.x, pos.y, color);
+        }
+    }
 }
+
 void rect(vec2i a, vec2i b, unsigned int color)
 {
 	for(int y=a.y;y<a.y+b.y;y++)
@@ -821,6 +861,29 @@ void drawtex(texture t)
 
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 {
+/*
+	if(posin[0].x < 0 && posin[1].x < 0 && posin[2].x < 0)
+	{
+		*cntout = 0;
+		return;
+	}
+	else if(posin[0].x >= BUFFER.width && posin[1].x >= BUFFER.width && posin[2].x >= BUFFER.width)
+	{
+		*cntout = 0;
+		return;
+	}
+	if(posin[0].y < 0 && posin[1].y < 0 && posin[2].y < 0)
+	{
+		*cntout = 0;
+		return;
+	}
+	else if(posin[0].y >= BUFFER.height && posin[1].y >= BUFFER.height && posin[2].y >= BUFFER.height)
+	{
+		*cntout = 0;
+		return;
+	}
+*/
+
 	if(posin[0].z >= CLIP_NEAR && posin[1].z >= CLIP_NEAR && posin[2].z >= CLIP_NEAR)
 	{
 		*cntout = 0;
