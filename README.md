@@ -11,7 +11,6 @@ Software renderer using libc and linux API.
 
 ## TODO
 1) fix backface culling
-2) remove multiple buffers because they dont do anything
 3) homebrew memory allocator
 4) collision detecion + response
 
