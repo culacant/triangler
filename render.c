@@ -78,18 +78,30 @@ void buf_flush()
 }
 void buf_px(int x, int y, unsigned int color)
 {
+	BUFFER.buf[y*BUFFER.width+x] = color;
+}
+int buf_getz(int x, int y)
+{
+	return BUFFER.zbuf[y*BUFFER.width+x];
+}
+void buf_setz(int x, int y, int z)
+{
+	BUFFER.zbuf[y*BUFFER.width+x] = z;
+}
+void buf_px_safe(int x, int y, unsigned int color)
+{
 	if(x<0 || y<0 || x>=BUFFER.width || y>=BUFFER.height)
 		return;
 	BUFFER.buf[y*BUFFER.width+x] = color;
 }
-int buf_getz(int x, int y)
+int buf_getz_safe(int x, int y)
 {
 	if(x<0 || y<0 || x>=BUFFER.width || y>=BUFFER.height)
 		return ZBUF_MIN;
 	else
 		return BUFFER.zbuf[y*BUFFER.width+x];
 }
-void buf_setz(int x, int y, int z)
+void buf_setz_safe(int x, int y, int z)
 {
 	if(x<0 || y<0 || x>=BUFFER.width || y>=BUFFER.height)
 		return;
@@ -165,7 +177,7 @@ void text_draw(int x, int y, const char *text, unsigned int color)
 				for(int xi=TEXTRES;xi>0;xi--)
 				{
 					if(c & 1)
-						buf_px(x+xi,y+yi, color);
+						buf_px_safe(x+xi,y+yi, color);
 					c >>= 1;
 				}
 			}
@@ -311,9 +323,9 @@ void line(vec2i a, vec2i b, unsigned int color)
 	for(int x=a.x; x<=b.x;x++)
 	{
 		if(steep)
-			buf_px(y,x,color);
+			buf_px_safe(y,x,color);
 		else
-			buf_px(x,y,color);
+			buf_px_safe(x,y,color);
 		e2 += de2;
 		if(e2 > dx)
 		{
@@ -361,9 +373,9 @@ void line_dot(vec2i a, vec2i b, unsigned int color)
 		if(x%2)
 		{
 			if(steep)
-				buf_px(y,x,color);
+				buf_px_safe(y,x,color);
 			else
-				buf_px(x,y,color);
+				buf_px_safe(x,y,color);
 		}
 		e2 += de2;
 		if(e2 > dx)
@@ -418,10 +430,10 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 				zfac += bary.y*b.z;
 				zfac += bary.z*c.z;
 // fix: zfac float => int	
-				if(zfac < buf_getz(j,y))
+				if(zfac < buf_getz_safe(j,y))
 				{
-					buf_setz(j,y,zfac);
-					buf_px(j,y,color);
+					buf_setz_safe(j,y,zfac);
+					buf_px_safe(j,y,color);
 				}
 			}
 		}
@@ -449,10 +461,10 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 				zfac += bary.z*c.z;
 				
 // fix: zfac float => int	
-				if(zfac < buf_getz(j,y))
+				if(zfac < buf_getz_safe(j,y))
 				{
-					buf_setz(j,y,zfac);
-					buf_px(j,y,color);
+					buf_setz_safe(j,y,zfac);
+					buf_px_safe(j,y,color);
 				}
 			}
 		}
@@ -530,19 +542,21 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
                 phi = 1.0f;
             else
                 phi = inv_lerp_i(minx, maxx, j);
-            pos = (vec3i){j, y, lerp_i(j, out2.z, phi)};
-            uvpos = vec2f_lerp(uvout1, uvout2, phi);
+            pos = (vec3i){j, y, lerp_i(out1.z, out2.z, phi)};
+			if(buf_getz(pos.x, pos.y) < pos.z)
+			{
+				uvpos = vec2f_lerp(uvout1, uvout2, phi);
+	// TODO: optimize
+				uvpos.x = wrap_one_f(uvpos.x);
+				uvpos.y = wrap_one_f(uvpos.y);
 
-// TODO: optimize
-			uvpos.x = wrap_one_f(uvpos.x);
-			uvpos.y = wrap_one_f(uvpos.y);
+				uvi.x = (int)(t.width*uvpos.x);
+				uvi.y = (int)(t.height*uvpos.y);
 
-            uvi.x = (int)(t.width*uvpos.x);
-            uvi.y = (int)(t.height*uvpos.y);
-
-            color = t.data[uvi.x+uvi.y*t.width];
-            buf_setz(pos.x, pos.y, pos.z);
-            buf_px(pos.x, pos.y, color);
+				color = t.data[uvi.x+uvi.y*t.width];
+				buf_setz(pos.x, pos.y, pos.z);
+				buf_px(pos.x, pos.y, color);
+			}
         }
     }
 // lower half
@@ -574,18 +588,21 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
                 phi = 1.0f;
             else
                 phi = inv_lerp_i(minx, maxx, j);
-            pos = (vec3i){j, y, lerp_i(j, out2.z, phi)};
-            uvpos = vec2f_lerp(uvout1, uvout2, phi);
-// TODO: optimize
-			uvpos.x = wrap_one_f(uvpos.x);
-			uvpos.y = wrap_one_f(uvpos.y);
+            pos = (vec3i){j, y, lerp_i(out1.z, out2.z, phi)};
+			if(buf_getz(pos.x, pos.y) < pos.z)
+			{
+				uvpos = vec2f_lerp(uvout1, uvout2, phi);
+	// TODO: optimize
+				uvpos.x = wrap_one_f(uvpos.x);
+				uvpos.y = wrap_one_f(uvpos.y);
 
-            uvi.x = (int)(t.width*uvpos.x);
-            uvi.y = (int)(t.height*uvpos.y);
+				uvi.x = (int)(t.width*uvpos.x);
+				uvi.y = (int)(t.height*uvpos.y);
 
-            color = t.data[uvi.x+uvi.y*t.width];
-            buf_setz(pos.x, pos.y, pos.z);
-            buf_px(pos.x, pos.y, color);
+				color = t.data[uvi.x+uvi.y*t.width];
+				buf_setz(pos.x, pos.y, pos.z);
+				buf_px(pos.x, pos.y, color);
+			}
         }
     }
 }
@@ -596,7 +613,7 @@ void rect(vec2i a, vec2i b, unsigned int color)
 	{
 		for(int x=a.x;x<a.x+b.x;x++)
 		{
-			buf_px(x,y,color);
+			buf_px_safe(x,y,color);
 		}
 	}
 }
@@ -854,7 +871,7 @@ void drawtex(texture t)
 	{
 		for(int x=0; x<t.width;x++)
 		{
-			buf_px(x,y,t.data[x+y*t.width]);
+			buf_px_safe(x,y,t.data[x+y*t.width]);
 		}
 	}
 }

@@ -165,6 +165,9 @@ void buf_flush();
 void buf_px(int x, int y, unsigned int color);
 int buf_getz(int x, int y);
 void buf_setz(int x, int y, int z);
+void buf_px_safe(int x, int y, unsigned int color);
+int buf_getz_safe(int x, int y);
+void buf_setz_safe(int x, int y, int z);
 
 void zbuf_to_tga(const char *filename);
 
