@@ -727,7 +727,8 @@ void drawmodel_wire(model m, unsigned int color)
 		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->mv);
 		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->mv);
 		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->mv);
-		n = vec_norm(vec_cross(vec_sub(c, a), vec_sub(b, a)));
+		n = vec_norm(vec_cross(vec_sub(in[2], in[0]), vec_sub(in[1], in[0])));
+		
 		face = vec_dot(n, l);
 
 		triangle_clip_viewport(in, uvin, out, uvout, &outcnt);

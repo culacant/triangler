@@ -1,9 +1,5 @@
 #include <unistd.h>
 
-// single compilation unit
-#include "math.c"
-#include "render.c"
-
 int main()
 {
 	char debug_text[256];
