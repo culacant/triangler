@@ -3,3 +3,6 @@ http://glasnost.itcarlow.ie/~powerk/GeneralGraphicsNotes/projection/viewport_tra
 https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/building-basic-perspective-projection-matrix?url=3d-basic-rendering/perspective-and-orthographic-projection-matrix/building-basic-perspective-projection-matrix
 https://www.songho.ca/opengl/gl_projectionmatrix.html#perspective
 https://www.songho.ca/opengl/gl_transform.html
+
+https://graphics.stanford.edu/courses/cs348b-98/gg/intersect.html
+https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
