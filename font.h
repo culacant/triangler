@@ -1,5 +1,5 @@
 #define TEXTRES 8
-unsigned long long FONT [128] = {
+const unsigned long long FONT [128] = {
 0x7E665A5A667E00,	// NULL
 0x7E665A5A667E00,	// START OF HEADING
 0x7E665A5A667E00,	// START OF TEXT

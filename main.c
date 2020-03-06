@@ -3,12 +3,11 @@
 int main()
 {
 	char debug_text[256];
-	texture t = loadtga("res/head.tga");
-	model iqe = loadiqe("res/cube.iqe");
-	/*
-	texture t2 = loadtga("res/head256.tga");
-	model iqe2 = loadiqe("res/head.iqe");
-	*/
+	texture t_head = loadtga("res/head.tga");
+	model iqe = loadiqe("res/testlvl.iqe");
+	model sphere = loadiqe("res/sphere.iqe");
+	texture t_red = loadtga("res/red.tga");
+
 
 	buf_init();
 	input_init();
@@ -72,7 +71,8 @@ int main()
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		camera_update_mat(CAMERA);
 
-		drawmodel_tex(iqe,t);
+		drawmodel_tex(iqe,t_head);
+		drawmodel_tex(sphere,t_red);
 //		drawmodel_wire(iqe, color_rgb(255,255,0));
 
 		sprintf(debug_text, "TIME: %i\npos: %f %f %f\ntar: %f %f %f\nang: %f %f", 
@@ -88,10 +88,10 @@ int main()
 		buf_flush();
 		input_flush();
 	}
-	unloadtex(t);
+	unloadtex(t_head);
 	unloadmodel(iqe);
-//	unloadtex(t2);
-//	unloadmodel(iqe2);
+	unloadtex(t_red);
+	unloadmodel(sphere);
 	buf_free();
 	input_free();
 	return 0;

@@ -249,6 +249,9 @@ mat4f mat_viewport(int x, int y, int w, int h);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 
+// physics.c functions
+int swept_tri_collision(vec3f sphere, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n);
+
 // render.c functions
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
 unsigned int brighten(unsigned int c, float b);

@@ -688,7 +688,7 @@ model loadiqe(const char *filename)
 		b = out.vp[out.fm[f*3+1]];
 		c = out.vp[out.fm[f*3+2]];
 
-		out.fn[f] = vec_cross(vec_sub(c,a),vec_sub(b,a));
+		out.fn[f] = vec_cross(vec_sub(b,a),vec_sub(c,a));
 		out.fn[f] = vec_norm(out.fn[f]);
 	}
 	fclose(fp);
@@ -714,12 +714,10 @@ void drawmodel_wire(model m, unsigned int color)
 	vec2i ai;
 	vec2i bi;
 	vec2i ci;
-	vec3f a;
-	vec3f b;
-	vec3f c;
-	vec3f n;
 
-	const vec3f l = (vec3f){0.0f,0.0f,-1.0f};
+	vec3f n;
+	const vec3f l = (vec3f){0.0f,0.0f,1.0f};
+
 	float face = 0.0f;
 	unsigned int colorout;
 	for(int f=0;f<m.fcnt;f++)
