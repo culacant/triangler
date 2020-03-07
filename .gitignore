@@ -8,6 +8,6 @@
 *o
 obj/*
 graph
-test
+test/test.exe
 cachegrind*
 callgrind*

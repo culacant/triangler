@@ -250,6 +250,7 @@ mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 
 // physics.c functions
+int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c);
 int swept_tri_collision(vec3f sphere, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n);
 
 // render.c functions

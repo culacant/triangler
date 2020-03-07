@@ -1,3 +1,7 @@
+int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c)
+{
+	return 0;
+}
 int swept_tri_collision(vec3f sphere, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n)
 {
 	int i;
