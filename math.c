@@ -293,3 +293,11 @@ mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 
 	return out;
 }
+mat4f mat_transform(vec3f pos)
+{
+	mat4f out = {1.0f, 0.0f, 0.0f, pos.x,
+				 0.0f, 1.0f, 0.0f, pos.y,
+				 0.0f, 0.0f, 1.0f, pos.z,
+				 0.0f, 0.0f, 0.0f, 1.0f};
+	return out;
+}

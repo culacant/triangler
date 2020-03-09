@@ -622,6 +622,7 @@ model loadiqe(const char *filename)
 {
 	char line[512];
 	model out = {0};
+	out.trans = mat_identity();
 	FILE *fp = fopen(filename, "r");
 
 	if(!fp)
@@ -771,11 +772,12 @@ void drawmodel_tex(model m, texture t)
 
 	int outcnt = 0;
 	float face = 0.0f;
+	mat4f mv = mat_mul(m.trans, CAMERA->mv);
 	for(int f=0;f<m.fcnt;f++)
 	{
-		in[0] = vec_trans(m.vp[m.fm[f*3+0]], CAMERA->mv);
-		in[1] = vec_trans(m.vp[m.fm[f*3+1]], CAMERA->mv);
-		in[2] = vec_trans(m.vp[m.fm[f*3+2]], CAMERA->mv);
+		in[0] = vec_trans(m.vp[m.fm[f*3+0]], mv);
+		in[1] = vec_trans(m.vp[m.fm[f*3+1]], mv);
+		in[2] = vec_trans(m.vp[m.fm[f*3+2]], mv);
 // FIXME: normals
 /*
 		n = vec_norm(vec_cross(vec_sub(in[2], in[0]),vec_sub(in[1], in[0])));

@@ -105,6 +105,7 @@ typedef struct model
 	int fcnt;
 	int *fm;
 	vec3f *fn;
+	mat4f trans;
 } model;
 typedef struct texture
 {
@@ -248,9 +249,10 @@ mat4f mat_identity();
 mat4f mat_viewport(int x, int y, int w, int h);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
+mat4f mat_transform(vec3f pos);
 
 // physics.c functions
-int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c);
+int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, vec3f *out);
 int swept_tri_collision(vec3f sphere, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n);
 
 // render.c functions
