@@ -16,10 +16,10 @@ static int child_func(void* arg) {
 	int *proc_status = (int *)arg;
 	while(1)
 	{
+		kill(getpid(), SIGSTOP);
 		if(*proc_status %2)
 		{
 			printf("CHILD %i, %i\n", *proc_status, status_2);
-			kill(getpid(), SIGSTOP);
 		}
 	}
 	return 0;
@@ -45,11 +45,11 @@ int main(int argc, char** argv) {
 
 	while(1)
 	{
-		printf("PARENT %i, %i\n", proc_status[0], status_2);
 		proc_status[0]++;
 		status_2++;
-		sleep(3);
+		printf("PARENT %i, %i\n", proc_status[0], status_2);
 		kill(pid, SIGCONT);
+		sleep(1);
 //		printf("PID %i\n", pid);
 	}
 

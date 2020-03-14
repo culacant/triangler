@@ -16,13 +16,11 @@ void buf_init()
 		printf("ERROR: cannot open TTY: %s\n", TTY_NAME);
 		return;
 	}
-	/*
 	if(ioctl(BUFFER.tty, KDSETMODE, KD_GRAPHICS) == -1)
 	{
 		printf("ERROR: cannot set graphics mode on TTY: %s\n", TTY_NAME);
 		return;
 	}
-	*/
 	if(ioctl(BUFFER.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
 	{
 		printf("ERROR: get screen info failed: %s\n", strerror(errno));

@@ -2,13 +2,14 @@
 
 #define EPSILON 0.000001f
 
-int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, vec3f *out)
+int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out)
 {
 	vec3f e1;
 	vec3f e2;
 	vec3f t;
 	vec3f p;
 	vec3f q;
+	vec3f u;
 	float det;
 	float det_inv;
 
@@ -25,35 +26,45 @@ int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, vec3f *out)
 
 	if(det > EPSILON)
 	{
-		out->x = vec_dot(t, p);
-		if(out->x < 0.0f || out->x > det)
+		u.x = vec_dot(t, p);
+		if(u.x < 0.0f || u.x > det)
 			return 0;
 
-		out->y = vec_dot(dir, q);
-		if(out->y < 0.0f || (out->x+out->y) > det)
+		u.y = vec_dot(dir, q);
+		if(u.y < 0.0f || (u.x+u.y) > det)
 			return 0;
 	}
 	else if( det < -EPSILON)
 	{
-		out->x = vec_dot(t, p);
-		if(out->x > 0.0f || out->x < det)
+		u.x = vec_dot(t, p);
+		if(u.x > 0.0f || u.x < det)
 			return 0;
 
-		out->y = vec_dot(dir, q);
-		if(out->y > 0.0f || (out->x+out->y) < det)
+		u.y = vec_dot(dir, q);
+		if(u.y > 0.0f || (u.x+u.y) < det)
 			return 0;
 	}
 	else
 		return 0;
 
-	out->z = vec_dot(e2, q) * det_inv;
-	out->x *= det_inv;
-	out->y *= det_inv;
+	out->distance = vec_dot(e2, q) * det_inv;
+	out->pos = vec_add(o, vec_mul_f(dir, out->distance));
+	out->normal = vec_norm(vec_cross(e1, e2));
 
 	return 1;
 }
-int swept_tri_collision(vec3f sphere, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n)
+int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, intersection *out)
 {
+	float dist_sign;
+	float t0;
+	float t1;
+	float t_div = vec_dot(n,vel);
+	if(t_div != 0.0f)
+	{
+		dist_sign = vec_dot(n, vec_sub(pos, a));
+		t0 = (1-dist_sign)/t_div;
+		t1 = (-1-dist_sign)/t_div;
+	}
 	int i;
 	int i2;
 // check same sign

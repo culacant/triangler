@@ -1,5 +1,26 @@
 #include <unistd.h>
 
+vec3f camray_model_collision(model m)
+{
+	vec3f o = CAMERA->pos;
+	vec3f dir = vec_norm(vec_sub(CAMERA->target, CAMERA->pos));
+	intersection out = (intersection){0};
+	out.distance = 999999.0f;
+	for(int i=0;i<m.fcnt;i++)
+	{
+		vec3f a = m.vp[m.fm[i*3+0]];
+		vec3f b = m.vp[m.fm[i*3+1]];
+		vec3f c = m.vp[m.fm[i*3+2]];
+		intersection cur = (intersection){0};
+		if(ray_tri_collision(o, dir, a, b, c, &cur))
+		{
+			if(cur.distance < out.distance)
+				out = cur;
+		}
+	}
+	return out.pos;
+}
+
 int main()
 {
 	char debug_text[256];
@@ -62,14 +83,21 @@ int main()
 		}
 		if(INPUTS.mouseactivity)
 		{
-			CAMERA->angle.x += (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
+			CAMERA->angle.x -= (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
 			CAMERA->angle.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
 		}
 		camera_target_from_angle(CAMERA);
 		CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
-// length to target should be same
+// length to target should be same since its normalized
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		camera_update_mat(CAMERA);
+
+		if(input_key(KEY_T))
+		{
+			sphere.trans = mat_transform(camray_model_collision(iqe));
+		}
+		else
+			sphere.trans = mat_identity();
 
 		drawmodel_tex(iqe,t_head);
 		drawmodel_tex(sphere,t_red);

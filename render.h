@@ -36,7 +36,7 @@
 #define ASHIFT 24
 
 #define FOCUS_DIST 	50.0f
-#define DEPTH 		255
+#define DEPTH 		1024
 #define ZBUF_MIN	INT_MIN
 
 #define CLIP_POINT_IN 	3
@@ -53,6 +53,8 @@ typedef struct vec4f vec4f;
 typedef struct mat4f mat4f;
 typedef struct model model;
 typedef struct texture texture;
+
+typedef struct intersection intersection;
 
 typedef struct camera camera;
 
@@ -113,6 +115,13 @@ typedef struct texture
 	int height;
 	unsigned int *data;
 } texture;
+
+typedef struct intersection
+{
+	vec3f pos;
+	vec3f normal;
+	float distance;
+} intersection;
 
 typedef struct camera
 {
@@ -252,8 +261,8 @@ mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 mat4f mat_transform(vec3f pos);
 
 // physics.c functions
-int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, vec3f *out);
-int swept_tri_collision(vec3f sphere, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n);
+int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
+int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, intersection *out);
 
 // render.c functions
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
