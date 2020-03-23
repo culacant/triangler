@@ -8,3 +8,4 @@ https://graphics.stanford.edu/courses/cs348b-98/gg/intersect.html
 https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 http://realtimecollisiondetection.net/blog/?p=103
 http://www.peroxide.dk/papers/collision/collision.pdf
+https://github.com/jrouwe/SweptEllipsoid/blob/master/Source/SweptEllipsoid.cpp

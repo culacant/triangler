@@ -1,6 +1,6 @@
 CC = gcc 
 #CFLAGS = -std=c99 -Wall -O3 -march=native 
 CFLAGS = -std=c99 -Wall -ggdb  -D_POSIX_C_SOURCE
-#LDFLAGS = -lraylib -lX11 -lm
+LDFLAGS = -lraylib -lX11 -lm
 exe: 
-	$(CC) threads.c -o test.exe $(OBJ) $(CFLAGS) $(LDFLAGS)
+	$(CC) raylib_sweptsphere.c -o test.exe $(OBJ) $(CFLAGS) $(LDFLAGS)
