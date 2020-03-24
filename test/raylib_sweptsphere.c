@@ -18,7 +18,7 @@ vec3f c = (Vector3){-100.0f, 0.0f, 100.0f};
 vec3f n = (Vector3){0.0f, -1.0f, 0.0f};
 
 vec3f p = (Vector3){0.0f, 0.0f, -99.0f};
-vec3f vel = (Vector3){20.0f, 50.0f, 0.0f};
+vec3f vel = (Vector3){200.0f, 100.0f, 0.0f};
 vec3f p2;
 float r = 10.0f;
 
@@ -33,12 +33,14 @@ float inv_lerp(float a, float b, float c)
     return (float)(c-a)/(b-a);
 }
 
-vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
+vec3f vec_project_plane(vec3f p, float r, vec3f o, vec3f n)
 {
 	vec3f v = vec_sub(p, o);
 	float dist = v.x*n.x + v.y*n.y + v.z*n.z;
 
-	return vec_sub(p, vec_mul_f(n, dist));
+	if(dist < 0)
+		r = -r;
+	return vec_sub(p, vec_mul_f(n, dist+r));
 }
 
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
@@ -68,7 +70,7 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
     return ((iz & ~(ix|iy)) & 0x80000000);      // real shit
 }
 
-int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, vec3f vel, vec3f *out)
+int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, float r, vec3f vel, vec3f *out)
 {
 	vec3f pv = Vector3Add(p, vel);
 	float l;
@@ -103,7 +105,9 @@ int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, vec3f vel, vec3f *out
 		out->z = lerp(p.z, pv.z, l);
 		if(point_in_tri(*out, a, b, c))
 		{
-			*out = vec_add(*out, n);
+			if(d1 > 0)
+				r = -r;
+			*out = vec_add(*out, vec_mul_f(n, r));
 			return 1;
 		}
 	}
@@ -126,6 +130,8 @@ int main(void)
     {
 	    p.x = GetMouseX()-300;
 		p.y = GetMouseY()-300;
+		if(IsKeyPressed(KEY_SPACE))
+			vel = vec_mul_f(vel, -1.0f);
 
 
         BeginDrawing();
@@ -139,8 +145,8 @@ int main(void)
 			DrawCircle(p.x+300, p.y+300, r, RED);
 
 			p2 = vec_add(p, vel);
-			if(tri_swept(a, b, c, n, p, vel, &pout))
-				p2 = vec_project_plane(p2, a, n);
+			if(tri_swept(a, b, c, n, p, r, vel, &pout))
+				p2 = vec_project_plane(p2, r, a, n);
 			DrawCircle(p2.x+300, p2.y+300, r, RED);
 				
 			DrawCircle(pout.x+300, pout.y+300, r, PURPLE);
