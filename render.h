@@ -45,6 +45,8 @@
 
 #define PI 3.14159265358979323846
 
+#define THIRD 0.333333
+
 typedef struct vec2i vec2i;
 typedef struct vec3i vec3i;
 typedef struct vec3f vec3f;
@@ -122,6 +124,12 @@ typedef struct intersection
 	vec3f normal;
 	float distance;
 } intersection;
+typedef struct collision
+{
+	vec3f pos;
+	vec3f vel;
+	float distance2;
+} collision;
 
 typedef struct camera
 {
@@ -225,6 +233,7 @@ void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f ou
 vec3f vec_cross(vec3f a, vec3f b);
 float vec_dot(vec3f a, vec3f b);
 float vec_len(vec3f a);
+float vec_len2(vec3f a);
 int vec_dot_i(vec3i a, vec3i b);
 float vec_dist(vec3f a, vec3f b);
 vec3f vec_add(vec3f a, vec3f b);
@@ -236,6 +245,7 @@ vec3f barycentric(vec3f a, vec3f b, vec3f c, vec3f p);
 vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p);
 vec3f vec_trans(vec3f a, mat4f m);
+vec3f vec_project_plane(vec3f p, vec3f o, vec3f n);
 
 void vec2i_swap(vec2i *a, vec2i *b);
 void vec2f_swap(vec2f *a, vec2f *b);
@@ -262,8 +272,10 @@ mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 mat4f mat_transform(vec3f pos);
 
 // physics.c functions
-int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
-int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, intersection *out);
+int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
+int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
+int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
+
 
 // render.c functions
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 

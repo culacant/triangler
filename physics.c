@@ -11,7 +11,7 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
 	float v = vec_dot(e10,e20);
 	float w = vec_dot(e20,e20);
 	float uw_vv = (u*w)-(v*v);
-	vec3f vp = (vec3f){p.x-a.x, p.y-a.y, p.z-a.z};
+	vec3f vp = vec_sub(p, a);
 
 	float d = vec_dot(vp, e10);
 	float e = vec_dot(vp, e20);
@@ -29,7 +29,7 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
 	return ((iz & ~(ix|iy)) & 0x80000000);		// real shit
 }
 
-int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out)
+int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out)
 {
 	vec3f e1;
 	vec3f e2;
@@ -80,72 +80,68 @@ int ray_tri_collision(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 
 	return 1;
 }
-int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, intersection *out)
+int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out)
 {
+	vec3f center = vec_mul_f(vec_add(a, vec_add(b, c)), THIRD);
+
+	float l1 = vec_dist(a, center);
+	float l2 = ((l1+r)/l1);
+
+	vec3f aadj = vec_add(center, vec_mul_f(vec_sub(a, center), l2));
+	vec3f badj = vec_add(center, vec_mul_f(vec_sub(b, center), l2));
+	vec3f cadj = vec_add(center, vec_mul_f(vec_sub(c, center), l2));
+
+	vec3f pv = vec_add(pos, vel);
+	float l;
+
+	vec3f v1;
+	float d1;
+	vec3f a1 = vec_sub(a, pos);
+	vec3f b1 = vec_sub(b, pos);
+	vec3f c1 = vec_sub(c, pos);
+
+	vec3f v2;
+	float d2;
+	float e2;
+	vec3f a2 = vec_sub(a, pv);
+	vec3f b2 = vec_sub(b, pv);
+	vec3f c2 = vec_sub(c, pv);
+
+	v1 = vec_cross(vec_sub(b1, a1), vec_sub(c1, a1));
+	d1 = vec_dot(a1, v1);
+
+	v2 = vec_cross(vec_sub(b2, a2), vec_sub(c2, a2));
+	d2 = vec_dot(a2, v2);
+	e2 = vec_dot(v2, v2);
+
+	if((d1 * d2) <= 0)
+	{
+		l = inv_lerp(d1, d2, 0);
+		out->pos = vec3f_lerp(pos, pv, l);
+		if(point_in_tri(out->pos, aadj, badj, cadj))
+		{
+			out->pos = vec_add(out->pos, vec_mul_f(n, r));
+			out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
+			out->distance2 = vec_len_2(vel);
+			return 1;
+		}
+	}
+	else if((d2*d2) <= (r*r*e2))
+	{
+		if(point_in_tri(pv, aadj, badj, cadj))
+		{
+			l = inv_lerp(d1, d2, 0);
+			out->pos = vec3f_lerp(pos, pv, l);
+
+			out->pos = vec_add(out->pos, vec_mul_f(n, r));
+			out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
+			out->distance2 = 0.0f;
+			return 2;
+		}
+	}
+	// dont need to check d1
+	out->pos = pv;
+	out->vel = vel;
+	out->distance2 = vec_len_2(vel);
 	return 0;
 }
-/*
-{
-	float t;
-	float t0;
-	float t1;
-	float tmp;
-	float t_div = vec_dot(n,vel);
-	float dist_sign = vec_dot(n, vec_sub(pos, a));
-	int embedded = 0;
-	int collision = 0;
-
-	vec3f plane_intersect;
-
-	if(t_div == 0.0f)
-	{
-		if(fabs(dist_sign) >= 1.0f)		// unit sphere
-			return 0;
-		else
-		{
-			embedded = 1;
-			t0 = 0.0f;
-			t1 = 1.0f;
-		}
-	}
-	else
-	{
-		t0 = (1.0f-dist_sign)/t_div;
-		t1 = (-1.0f-dist_sign)/t_div;
-		if(t0 > t1)
-		{
-			tmp = t0;
-			t0 = t1;
-			t1 = tmp;
-		}
-			
-		if(t0 > 1.0f || t1 < 0.0f)
-			return 0;
-
-		if(t0 < 0.0f)
-			t0 = 0.0f;
-		if(t0 > 1.0f)
-			t0 = 1.0f;
-		if(t1 < 0.0f)
-			t1 = 0.0f;
-		if(t1 > 1.0f)
-			t1 = 1.0f;
-	}
-	if(!embedded)
-	{
-		plane_intersect = vec_sub(pos, vec_add(n, vec_mul_f(vel, t0)));
-		if(point_in_tri(plane_intersect, a, b, c))
-		{
-			collision = 1;
-			t = t0;
-			out->pos = plane_intersect;
-		}
-	}
-
-	if(!collision)
-	{
-		
-	}
-	return 1;
-}
-*/

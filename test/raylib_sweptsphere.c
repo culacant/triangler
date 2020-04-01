@@ -1,9 +1,8 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-
-#define CLIP_NEAR 200
 
 #define vec3f Vector3
 #define vec_add Vector3Add
@@ -11,19 +10,28 @@
 #define vec_dot Vector3DotProduct
 #define vec_cross Vector3CrossProduct
 #define vec_mul_f Vector3Scale
+#define vec_norm Vector3Normalize
 
-vec3f a = (Vector3){-100.0f, 0.0f, -100.0f};
-vec3f b = (Vector3){100.0f, 0.0f, -100.0f};
-vec3f c = (Vector3){-100.0f, 0.0f, 100.0f};
+vec3f a = (vec3f){0,0,0};
+vec3f b = (vec3f){0,0,0};
+vec3f c = (vec3f){0,0,0};
 vec3f n = (Vector3){0.0f, -1.0f, 0.0f};
 
-vec3f p = (Vector3){0.0f, 0.0f, -99.0f};
-vec3f vel = (Vector3){200.0f, 100.0f, 0.0f};
-vec3f p2;
-float r = 10.0f;
+float r = 1.0f;
 
-vec3f pout = (Vector3){0.0f, 0.0f, 50.0f};
+vec3f pout = (Vector3){0.0f, 0.0f, 0.0f};
 
+float vec_len(vec3f v)
+{
+	return sqrtf((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
+}
+float vec_dist(vec3f a, vec3f b)
+{
+	float dx = b.x-a.x;
+	float dy = b.y-a.y;
+	float dz = b.z-a.z;
+	return sqrtf(dx*dx + dy*dy + dz*dz);
+}
 float lerp(float a, float b, float amt)
 {
     return (float)a+amt*(b-a);
@@ -33,14 +41,11 @@ float inv_lerp(float a, float b, float c)
     return (float)(c-a)/(b-a);
 }
 
-vec3f vec_project_plane(vec3f p, float r, vec3f o, vec3f n)
+vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
 {
 	vec3f v = vec_sub(p, o);
-	float dist = v.x*n.x + v.y*n.y + v.z*n.z;
-
-	if(dist < 0)
-		r = -r;
-	return vec_sub(p, vec_mul_f(n, dist+r));
+	float dist = vec_dot(v, n);
+	return vec_sub(p, vec_mul_f(n, dist));
 }
 
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
@@ -70,9 +75,20 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
     return ((iz & ~(ix|iy)) & 0x80000000);      // real shit
 }
 
-int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, float r, vec3f vel, vec3f *out)
+
+#define THIRD 0.333333
+int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, float r, vec3f *vel, vec3f *pout)
 {
-	vec3f pv = Vector3Add(p, vel);
+	vec3f center = vec_mul_f(vec_add(a, vec_add(b, c)), THIRD);
+	
+	float l1 = vec_dist(a, center);
+	float l2 = ((l1+r)/l1);
+
+	vec3f aadj = vec_add(center, vec_mul_f(vec_sub(a,center), l2));
+	vec3f badj = vec_add(center, vec_mul_f(vec_sub(b,center), l2));
+	vec3f cadj = vec_add(center, vec_mul_f(vec_sub(c,center), l2));
+
+	vec3f pv = Vector3Add(p, *vel);
 	float l;
 
 	vec3f v1;
@@ -97,26 +113,56 @@ int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, float r, vec3f vel, v
 	d2 = vec_dot(a2, v2);
 	e2 = vec_dot(v2, v2);
 
-	if((d1 * d2) < 0)	// different signs
+	if((d1 * d2) <= 0)
 	{
 		l = inv_lerp(d1, d2, 0);
-		out->x = lerp(p.x, pv.x, l);
-		out->y = lerp(p.y, pv.y, l);
-		out->z = lerp(p.z, pv.z, l);
-		if(point_in_tri(*out, a, b, c))
+		pout->x = lerp(p.x, pv.x, l);
+		pout->y = lerp(p.y, pv.y, l);
+		pout->z = lerp(p.z, pv.z, l);
+		if(point_in_tri(*pout, aadj, badj, cadj))
 		{
-			if(d1 > 0)
-				r = -r;
-			*out = vec_add(*out, vec_mul_f(n, r));
+			*pout = vec_add(*pout, vec_mul_f(n, r));
+			*vel = vec_sub(vec_project_plane(pv, *pout, n), *pout);
 			return 1;
 		}
 	}
-	out->x = pv.x;
-	out->y = pv.y;
-	out->z = pv.z;
+	if((d2*d2) <= (r*r*e2))
+	{
+		if(point_in_tri(pv, aadj, badj, cadj))
+		{
+			l = inv_lerp(d1, d2, 0);
+			pout->x = lerp(p.x, pv.x, l);
+			pout->y = lerp(p.y, pv.y, l);
+			pout->z = lerp(p.z, pv.z, l);
+		
+			*pout = vec_add(*pout, vec_mul_f(n,r));
+			*vel = (vec3f){0.0f, 0.0f, 0.0f};
+			return 2;
+		}
+	}
+	/*
+	if((d1*d1) <= ((r*r)*e1))
+	{
+		if(point_in_tri(p, aadj, badj, cadj))
+		{
+			l = inv_lerp(d1, d2, 0);
+			pout->x = lerp(p.x, pv.x, l);
+			pout->y = lerp(p.y, pv.y, l);
+			pout->z = lerp(p.z, pv.z, l);
+		
+			*pout = vec_add(*pout, vec_mul_f(n,r));
+			*vel = vec_sub(vec_project_plane(pv, *pout, n), *pout);
+			return 1;
+		}
+	}
+	*/
+		
+	*pout = pv;
 	return 0;
 }
 
+vec3f p = (Vector3){0.0f, 0.0f, 0.0f};
+vec3f vel = (Vector3){0.0f, 0.0f, 0.0f};
 int main(void)
 {
     const int screenWidth = 800;
@@ -125,31 +171,65 @@ int main(void)
     InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
 
     SetTargetFPS(60);
-
+	Camera camera = { { 0.0f, 10.0f, 10.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
+	SetCameraMode(camera, CAMERA_FREE);
+Ray ray;
+vec3f p4;
     while (!WindowShouldClose())
     {
-	    p.x = GetMouseX()-300;
-		p.y = GetMouseY()-300;
-		if(IsKeyPressed(KEY_SPACE))
-			vel = vec_mul_f(vel, -1.0f);
-
-
+		UpdateCamera(&camera);
+		vec3f p2;
+		if(IsKeyPressed(KEY_R))
+		{
+			a.x = rand()%10;
+			a.y = rand()%10;
+			a.z = rand()%10;
+			b.x = rand()%10;
+			b.y = rand()%10;
+			b.z = rand()%10;
+			c.x = rand()%10;
+			c.y = rand()%10;
+			c.z = rand()%10;
+			n = vec_norm(vec_cross(vec_sub(b,a), vec_sub(c,a)));
+p4 = vec_project_plane(camera.position, a, n);
+		}
         BeginDrawing();
             ClearBackground(RAYWHITE);
-			DrawCircle(a.x+300, a.y+300, 5.0f, BLUE);
-			DrawCircle(b.x+300, b.y+300, 5.0f, BLUE);
-			DrawCircle(c.x+300, c.y+300, 5.0f, BLUE);
-			DrawLine(a.x+300, a.y+300, a.x+300+(n.x), a.y+300+(n.y), BLUE);
+			BeginMode3D(camera);
+				DrawGizmo((vec3f){0,0,0});
+				DrawLine3D(a,b,BLUE);
+				DrawLine3D(b,c,BLUE);
+				DrawLine3D(a,c,BLUE);
 
-
-			DrawCircle(p.x+300, p.y+300, r, RED);
-
+		if(IsKeyPressed(KEY_SPACE))
+		{
+			p = camera.position;
+			ray = GetMouseRay((Vector2){screenWidth/2, screenHeight/2}, camera);
+			vel = vec_mul_f(ray.direction, 5);
 			p2 = vec_add(p, vel);
-			if(tri_swept(a, b, c, n, p, r, vel, &pout))
-				p2 = vec_project_plane(p2, r, a, n);
-			DrawCircle(p2.x+300, p2.y+300, r, RED);
-				
-			DrawCircle(pout.x+300, pout.y+300, r, PURPLE);
+			if(tri_swept(a, b, c, n, p, r, &vel, &pout))
+				p2 = vec_add(pout, vel);
+			else
+				p2 = vec_add(p, vel);
+		}
+#define HALFRED CLITERAL(Color){255,0,0,128}
+#define HALFGREEN CLITERAL(Color){0,255,0,128}
+#define HALFBLUE CLITERAL(Color){0,0,255,128}
+vec3f p3 = vec_add(p, vec_mul_f(ray.direction,5));
+DrawLine3D(p, p3, RED);
+DrawSphere(p4, r, RED);
+
+
+
+
+			DrawSphere(p, r, HALFRED);
+			DrawSphere(p2, r/2, HALFGREEN);
+			DrawSphere(pout, r, HALFBLUE);
+			DrawLine3D(p, pout, RED);
+			DrawLine3D(pout, p2, RED);
+
+			//DrawLine(p.x+300, p.y+300, pout.x+300, pout.y+300, RED);
+			EndMode3D();
         EndDrawing();
     }
     CloseWindow();

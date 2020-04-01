@@ -13,6 +13,10 @@ float vec_len(vec3f a)
 {
 	return sqrtf(a.x*a.x + a.y*a.y + a.z*a.z);
 }
+float vec_len_2(vec3f a)
+{
+	return (a.x*a.x + a.y*a.y + a.z*a.z);
+}
 int vec_dot_i(vec3i a, vec3i b)
 {
 	return a.x*b.x+a.y*b.y+a.z*b.z;
@@ -129,6 +133,12 @@ vec3f vec_trans(vec3f a, mat4f m)
 	out.z = out.z/w;
 
 	return out;
+}
+vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
+{
+	vec3f v = vec_sub(p, o);
+	float dist = vec_dot(v, n);
+	return vec_sub(p, vec_mul_f(n,dist));
 }
 
 void vec2i_swap(vec2i *a, vec2i *b)

@@ -1,6 +1,6 @@
 #include <unistd.h>
 
-vec3f camray_model_collision(model m)
+vec3f camray_model_intersect(model m)
 {
 	vec3f o = CAMERA->pos;
 	vec3f dir = vec_norm(vec_sub(CAMERA->target, CAMERA->pos));
@@ -12,7 +12,7 @@ vec3f camray_model_collision(model m)
 		vec3f b = m.vp[m.fm[i*3+1]];
 		vec3f c = m.vp[m.fm[i*3+2]];
 		intersection cur = (intersection){0};
-		if(ray_tri_collision(o, dir, a, b, c, &cur))
+		if(ray_tri_intersect(o, dir, a, b, c, &cur))
 		{
 			if(cur.distance < out.distance)
 				out = cur;
@@ -94,7 +94,7 @@ int main()
 
 		if(input_key(KEY_T))
 		{
-			sphere.trans = mat_transform(camray_model_collision(iqe));
+			sphere.trans = mat_transform(camray_model_intersect(iqe));
 		}
 		else
 			sphere.trans = mat_identity();
