@@ -4,7 +4,7 @@
 #include "render.c"
 
 // game
-#include "game.c"
+//#include "game.c"
 
 // main
 #include "main.c"
