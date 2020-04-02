@@ -8,11 +8,11 @@ Software renderer using libc and linux API.
 - simple text rendering
 - matrix/vector math
 - mouse/keyboard input via /dev/input*
+- simple collision detection + response
 
 ## TODO
 1) fix backface culling
 3) homebrew memory allocator
-4) collision detecion + response
 
 ## TODO longterm
 - android (kitkat on Tegra 2 ventana)

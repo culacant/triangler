@@ -16,11 +16,13 @@ void buf_init()
 		printf("ERROR: cannot open TTY: %s\n", TTY_NAME);
 		return;
 	}
+	/*
 	if(ioctl(BUFFER.tty, KDSETMODE, KD_GRAPHICS) == -1)
 	{
 		printf("ERROR: cannot set graphics mode on TTY: %s\n", TTY_NAME);
 		return;
 	}
+	*/
 	if(ioctl(BUFFER.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
 	{
 		printf("ERROR: get screen info failed: %s\n", strerror(errno));
@@ -683,12 +685,17 @@ model loadiqe(const char *filename)
 	vec3f c;
 	for(int f=0;f<out.fcnt;f++)
 	{
+// TODO: sanitize blender export normals
+/*
 		a = out.vp[out.fm[f*3+0]];
 		b = out.vp[out.fm[f*3+1]];
 		c = out.vp[out.fm[f*3+2]];
 
 		out.fn[f] = vec_cross(vec_sub(b,a),vec_sub(c,a));
 		out.fn[f] = vec_norm(out.fn[f]);
+*/
+
+		out.fn[f] = vec_norm(out.vn[out.fm[f*3+0]]);
 	}
 	fclose(fp);
 	return out;

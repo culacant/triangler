@@ -17,12 +17,12 @@
 #include <limits.h>
 #include <time.h>
 
-#define TTY_NAME "/dev/tty3"
-#define FB_NAME "/dev/fb0"
-#define KB_NAME "/dev/input/event4"
-#define MOUSE_NAME "/dev/input/mice"
+#define TTY_NAME 		"/dev/tty3"
+#define FB_NAME 		"/dev/fb0"
+#define KB_NAME 		"/dev/input/event4"
+#define MOUSE_NAME 		"/dev/input/mice"
 
-#define MOUSEBYTECNT 3
+#define MOUSEBYTECNT 	3
 
 #define BUTTON_LEFT 	0x1
 #define BUTTON_RIGHT 	0x2
@@ -30,22 +30,26 @@
 
 #define MOUSE_SENSITIVITY 0.001f
 
-#define BSHIFT 0
-#define GSHIFT 8
-#define RSHIFT 16
-#define ASHIFT 24
+#define BSHIFT 			0
+#define GSHIFT 			8
+#define RSHIFT 			16
+#define ASHIFT 			24
 
-#define FOCUS_DIST 	50.0f
-#define DEPTH 		1024
-#define ZBUF_MIN	INT_MIN
+#define FOCUS_DIST 		50.0f
+#define DEPTH 			1024
+#define ZBUF_MIN		INT_MIN
 
 #define CLIP_POINT_IN 	3
 #define CLIP_POINT_OUT 	6
 #define CLIP_NEAR		-0.1f
 
-#define PI 3.14159265358979323846
+#define PI 				3.14159265358979323846
 
-#define THIRD 0.333333
+#define COLLISION_FALSE 0
+#define COLLISION_TRUE	0
+#define COLLISION_DONE  0
+#define THIRD 			0.333333
+#define SMALLNR 		0.000001f
 
 typedef struct vec2i vec2i;
 typedef struct vec3i vec3i;

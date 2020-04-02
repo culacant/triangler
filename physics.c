@@ -1,7 +1,5 @@
 #include "render.h"
 
-#define EPSILON 0.000001f
-
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
 {
 	vec3f e10 = vec_sub(b,a);
@@ -51,7 +49,7 @@ int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 
 	q = vec_cross(t, e1);
 
-	if(det > EPSILON)
+	if(det > SMALLNR)
 	{
 		u.x = vec_dot(t, p);
 		if(u.x < 0.0f || u.x > det)
@@ -61,7 +59,7 @@ int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 		if(u.y < 0.0f || (u.x+u.y) > det)
 			return 0;
 	}
-	else if( det < -EPSILON)
+	else if( det < -SMALLNR)
 	{
 		u.x = vec_dot(t, p);
 		if(u.x > 0.0f || u.x < det)
@@ -123,25 +121,24 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 			out->pos = vec_add(out->pos, vec_mul_f(n, r));
 			out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
 			out->distance2 = vec_len_2(vel);
-			return 1;
+			return COLLISION_TRUE;
 		}
 	}
 	else if((d2*d2) <= (r*r*e2))
 	{
 		if(point_in_tri(pv, aadj, badj, cadj))
 		{
-			l = inv_lerp(d1, d2, 0);
-			out->pos = vec3f_lerp(pos, pv, l);
+			out->pos = vec_project_plane(pv, a, n);
 
 			out->pos = vec_add(out->pos, vec_mul_f(n, r));
 			out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
 			out->distance2 = 0.0f;
-			return 2;
+			return COLLISION_DONE;
 		}
 	}
 	// dont need to check d1
 	out->pos = pv;
 	out->vel = vel;
 	out->distance2 = vec_len_2(vel);
-	return 0;
+	return COLLISION_FALSE;
 }
