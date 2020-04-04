@@ -83,7 +83,7 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 	vec3f center = vec_mul_f(vec_add(a, vec_add(b, c)), THIRD);
 
 	float l1 = vec_dist(a, center);
-	float l2 = ((l1+r)/l1);
+	float l2 = ((l1+3*r)/l1);
 
 	vec3f aadj = vec_add(center, vec_mul_f(vec_sub(a, center), l2));
 	vec3f badj = vec_add(center, vec_mul_f(vec_sub(b, center), l2));
@@ -120,9 +120,22 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 		{
 			out->pos = vec_add(out->pos, vec_mul_f(n, r));
 			out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
-			out->distance2 = vec_len_2(vel);
+			out->distance2 = vec_len2(vel);
 			return COLLISION_TRUE;
 		}
+		else
+        {
+            float pab = vec_dist2(vec_project_segment(out->pos, a, b), out->pos);
+            float pac = vec_dist2(vec_project_segment(out->pos, a, c), out->pos);
+            float pbc = vec_dist2(vec_project_segment(out->pos, b, c), out->pos);
+            if(pab > r*r || pac > r*r || pbc > r*r)
+            {
+                out->pos = vec_add(out->pos, vec_mul_f(n, r));
+                out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
+                out->distance2 = vec_len2(vel);
+                return COLLISION_TRUE;
+            }
+        }
 	}
 	else if((d2*d2) <= (r*r*e2))
 	{
@@ -135,10 +148,24 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 			out->distance2 = 0.0f;
 			return COLLISION_DONE;
 		}
+		else
+        {
+            float pab = vec_dist2(vec_project_segment(pv, a, b), out->pos);
+            float pac = vec_dist2(vec_project_segment(pv, a, c), out->pos);
+            float pbc = vec_dist2(vec_project_segment(pv, b, c), out->pos);
+            if(pab > r*r || pac > r*r || pbc > r*r)
+            {
+                out->pos = vec_project_plane(pv, a, n);
+                out->pos = vec_add(out->pos, vec_mul_f(n, r));
+                out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
+                out->distance2 = 0.0f;
+                return COLLISION_DONE;
+            }
+        }
 	}
 	// dont need to check d1
 	out->pos = pv;
 	out->vel = vel;
-	out->distance2 = vec_len_2(vel);
+	out->distance2 = vec_len2(vel);
 	return COLLISION_FALSE;
 }

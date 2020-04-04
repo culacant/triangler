@@ -5,7 +5,7 @@ player player_init(vec3f p)
 	out.pos = p;
 	out.vel = (vec3f){0.0f, 0.0f, 0.0f};
 	out.face = 0.0f;
-	out.r = 1.5f;
+	out.r = 1.0f;
 	return out;
 }
 void player_free()

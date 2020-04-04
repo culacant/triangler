@@ -240,6 +240,7 @@ float vec_len(vec3f a);
 float vec_len2(vec3f a);
 int vec_dot_i(vec3i a, vec3i b);
 float vec_dist(vec3f a, vec3f b);
+float vec_dist2(vec3f a, vec3f b);
 vec3f vec_add(vec3f a, vec3f b);
 vec3f vec_sub(vec3f a, vec3f b);
 vec3i vec_sub_i(vec3i a, vec3i b);
@@ -250,6 +251,8 @@ vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p);
 vec3f vec_trans(vec3f a, mat4f m);
 vec3f vec_project_plane(vec3f p, vec3f o, vec3f n);
+vec3f vec_project_line(vec3f p, vec3f a, vec3f b);
+vec3f vec_project_segment(vec3f p, vec3f a, vec3f b);
 
 void vec2i_swap(vec2i *a, vec2i *b);
 void vec2f_swap(vec2f *a, vec2f *b);
@@ -261,11 +264,14 @@ vec3i vec3i_lerp(vec3i a, vec3i b, float amt);
 vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
 vec4f vec4f_lerp(vec4f a, vec4f b, float amt);
 
+vec3f vec3f_clamp(vec3f a, vec3f min, vec3f max);
+
 float lerp(float a, float b, float amt);
 float inv_lerp(float a, float b, float c);
 float lerp_i(int a, int b, float amt);
 float inv_lerp_i(int a, int b, int c);
 
+float clamp_f(float a, float min, float max);
 int clamp_i(int a, int min, int max);
 float wrap_one_f(float a);
 

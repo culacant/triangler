@@ -12,18 +12,31 @@
 #define vec_mul_f Vector3Scale
 #define vec_norm Vector3Normalize
 
-vec3f a = (vec3f){0,0,0};
-vec3f b = (vec3f){0,0,0};
-vec3f c = (vec3f){0,0,0};
-vec3f n = (Vector3){0.0f, -1.0f, 0.0f};
+#define COLLISION_FALSE	0;
+#define COLLISION_TRUE 	1;
+#define COLLISION_DONE 	2;
+
+#define SMALLNR         0.000001f
+
+typedef struct collision
+{
+	vec3f pos;
+	vec3f vel;
+	float distance2;
+} collision;
+
 
 float r = 1.0f;
 
-vec3f pout = (Vector3){0.0f, 0.0f, 0.0f};
+collision col;
 
 float vec_len(vec3f v)
 {
 	return sqrtf((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
+}
+float vec_len_2(vec3f v)
+{
+	return ((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
 }
 float vec_dist(vec3f a, vec3f b)
 {
@@ -32,6 +45,13 @@ float vec_dist(vec3f a, vec3f b)
 	float dz = b.z-a.z;
 	return sqrtf(dx*dx + dy*dy + dz*dz);
 }
+float vec_dist_2(vec3f a, vec3f b)
+{
+	float dx = b.x-a.x;
+	float dy = b.y-a.y;
+	float dz = b.z-a.z;
+	return (dx*dx + dy*dy + dz*dz);
+}
 float lerp(float a, float b, float amt)
 {
     return (float)a+amt*(b-a);
@@ -39,6 +59,45 @@ float lerp(float a, float b, float amt)
 float inv_lerp(float a, float b, float c)
 {
     return (float)(c-a)/(b-a);
+}
+float clamp(float val, float min, float max)
+{
+	if(val < min)
+		val = min;
+	if(val > max)
+		val = max;
+	return val;
+}
+vec3f vec_clamp(vec3f p, vec3f a, vec3f b)
+{
+	vec3f out;
+	out.x = a.x < b.x ? clamp(p.x, a.x, b.x) : clamp(p.x, b.x, a.x);
+	out.y = a.y < b.y ? clamp(p.y, a.y, b.y) : clamp(p.y, b.y, a.y);
+	out.z = a.z < b.z ? clamp(p.z, a.z, b.z) : clamp(p.z, b.z, a.z);
+	return out;
+}
+vec3f vec_project_line(vec3f p, vec3f a, vec3f b)
+{
+	vec3f ab = vec_sub(b, a);
+	vec3f ap = vec_sub(p, a);
+	float abap = vec_dot(ab, ap);
+	float len = vec_len_2(ab);
+
+	return vec_add(a, vec_mul_f(ab, abap/len));
+}
+vec3f vec_project_segment(vec3f p, vec3f a, vec3f b)
+{
+	vec3f proj = vec_project_line(p, a, b);
+	return vec_clamp(proj, a, b);
+}
+
+vec3f vec3f_lerp(vec3f a, vec3f b, float amt)
+{
+	vec3f out = {0};
+	out.x = lerp(a.x, b.x, amt);
+	out.y = lerp(a.y, b.y, amt);
+	out.z = lerp(a.z, b.z, amt);
+	return out;
 }
 
 vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
@@ -77,92 +136,88 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c)
 
 
 #define THIRD 0.333333
-int tri_swept(vec3f a, vec3f b, vec3f c, vec3f n, vec3f p, float r, vec3f *vel, vec3f *pout)
+int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out)
 {
-	vec3f center = vec_mul_f(vec_add(a, vec_add(b, c)), THIRD);
-	
-	float l1 = vec_dist(a, center);
-	float l2 = ((l1+r)/l1);
+    vec3f pv = vec_add(pos, vel);
+    float l;
 
-	vec3f aadj = vec_add(center, vec_mul_f(vec_sub(a,center), l2));
-	vec3f badj = vec_add(center, vec_mul_f(vec_sub(b,center), l2));
-	vec3f cadj = vec_add(center, vec_mul_f(vec_sub(c,center), l2));
+    vec3f v1; 
+    float d1; 
+    vec3f a1 = vec_sub(a, pos);
+    vec3f b1 = vec_sub(b, pos);
+    vec3f c1 = vec_sub(c, pos);
 
-	vec3f pv = Vector3Add(p, *vel);
-	float l;
+    vec3f v2; 
+    float d2; 
+    float e2; 
+    vec3f a2 = vec_sub(a, pv);
+    vec3f b2 = vec_sub(b, pv);
+    vec3f c2 = vec_sub(c, pv);
 
-	vec3f v1;
-	float d1;
-	float e1;
-	vec3f a1 =  vec_sub(a, p);
-	vec3f b1 =  vec_sub(b, p);
-	vec3f c1 =  vec_sub(c, p);
+    v1 = vec_cross(vec_sub(b1, a1), vec_sub(c1, a1));
+    d1 = vec_dot(a1, v1);
 
-	vec3f v2;
-	float d2;
-	float e2;
-	vec3f a2 =  vec_sub(a, pv);
-	vec3f b2 =  vec_sub(b, pv);
-	vec3f c2 =  vec_sub(c, pv);
+    v2 = vec_cross(vec_sub(b2, a2), vec_sub(c2, a2));
+    d2 = vec_dot(a2, v2);
+    e2 = vec_dot(v2, v2);
 
-	v1 = vec_cross(vec_sub(b1,a1), vec_sub(c1,a1));
-	d1 = vec_dot(a1, v1);
-	e1 = vec_dot(v1, v1);
-
-	v2 = vec_cross(vec_sub(b2,a2), vec_sub(c2,a2));
-	d2 = vec_dot(a2, v2);
-	e2 = vec_dot(v2, v2);
-
-	if((d1 * d2) <= 0)
-	{
-		l = inv_lerp(d1, d2, 0);
-		pout->x = lerp(p.x, pv.x, l);
-		pout->y = lerp(p.y, pv.y, l);
-		pout->z = lerp(p.z, pv.z, l);
-		if(point_in_tri(*pout, aadj, badj, cadj))
+    if((d1 * d2) <= 0)
+    {
+        l = inv_lerp(d1, d2, 0);
+        out->pos = vec3f_lerp(pos, pv, l);
+        if(point_in_tri(out->pos, a, b, c))
+        {
+            out->pos = vec_add(out->pos, vec_mul_f(n, r));
+            out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
+            out->distance2 = vec_len_2(vel);
+            return COLLISION_TRUE;
+        }
+		else
 		{
-			*pout = vec_add(*pout, vec_mul_f(n, r));
-			*vel = vec_sub(vec_project_plane(pv, *pout, n), *pout);
-			return 1;
+			float pab = vec_dist_2(vec_project_segment(out->pos, a, b), out->pos);
+			float pac = vec_dist_2(vec_project_segment(out->pos, a, c), out->pos);
+			float pbc = vec_dist_2(vec_project_segment(out->pos, b, c), out->pos);
+			if(pab > r*r || pac > r*r || pbc > r*r)
+			{
+				out->pos = vec_add(out->pos, vec_mul_f(n, r));
+				out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
+				out->distance2 = vec_len_2(vel);
+				return COLLISION_TRUE;
+			}
 		}
-	}
-	if((d2*d2) <= (r*r*e2))
-	{
-		if(point_in_tri(pv, aadj, badj, cadj))
+    }
+    else if((d2*d2) <= (r*r*e2))
+    {
+        if(point_in_tri(pv, a, b, c))
+        {
+            out->pos = vec_project_plane(pv, a, n);
+            out->pos = vec_add(out->pos, vec_mul_f(n, r));
+            out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
+            out->distance2 = 0.0f;
+            return COLLISION_DONE;
+        }
+		else
 		{
-			l = inv_lerp(d1, d2, 0);
-			pout->x = lerp(p.x, pv.x, l);
-			pout->y = lerp(p.y, pv.y, l);
-			pout->z = lerp(p.z, pv.z, l);
-		
-			*pout = vec_add(*pout, vec_mul_f(n,r));
-			*vel = (vec3f){0.0f, 0.0f, 0.0f};
-			return 2;
+			float pab = vec_dist_2(vec_project_segment(pv, a, b), out->pos);
+			float pac = vec_dist_2(vec_project_segment(pv, a, c), out->pos);
+			float pbc = vec_dist_2(vec_project_segment(pv, b, c), out->pos);
+			if(pab > r*r || pac > r*r || pbc > r*r)
+			{
+				out->pos = vec_project_plane(pv, a, n);
+				out->pos = vec_add(out->pos, vec_mul_f(n, r));
+				out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
+				out->distance2 = 0.0f;
+				return COLLISION_DONE;
+			}
 		}
-	}
-	/*
-	if((d1*d1) <= ((r*r)*e1))
-	{
-		if(point_in_tri(p, aadj, badj, cadj))
-		{
-			l = inv_lerp(d1, d2, 0);
-			pout->x = lerp(p.x, pv.x, l);
-			pout->y = lerp(p.y, pv.y, l);
-			pout->z = lerp(p.z, pv.z, l);
-		
-			*pout = vec_add(*pout, vec_mul_f(n,r));
-			*vel = vec_sub(vec_project_plane(pv, *pout, n), *pout);
-			return 1;
-		}
-	}
-	*/
-		
-	*pout = pv;
-	return 0;
+    }
+	out->pos = pv;
+    out->vel = vel;
+    out->distance2 = vec_len_2(vel);
+    return COLLISION_FALSE;
 }
 
-vec3f p = (Vector3){0.0f, 0.0f, 0.0f};
-vec3f vel = (Vector3){0.0f, 0.0f, 0.0f};
+
 int main(void)
 {
     const int screenWidth = 800;
@@ -175,24 +230,16 @@ int main(void)
 	SetCameraMode(camera, CAMERA_FREE);
 Ray ray;
 vec3f p4;
+vec3f p = (Vector3){0.0f, 0.0f, 0.0f};
+vec3f vel = (Vector3){0.0f, 0.0f, 0.0f};
+vec3f a = (vec3f){9,7,10};
+vec3f b = (vec3f){3,0,0};
+vec3f c = (vec3f){-5,-5,5};
+vec3f n = vec_norm(vec_cross(vec_sub(b,a), vec_sub(c,a)));
     while (!WindowShouldClose())
     {
 		UpdateCamera(&camera);
 		vec3f p2;
-		if(IsKeyPressed(KEY_R))
-		{
-			a.x = rand()%10;
-			a.y = rand()%10;
-			a.z = rand()%10;
-			b.x = rand()%10;
-			b.y = rand()%10;
-			b.z = rand()%10;
-			c.x = rand()%10;
-			c.y = rand()%10;
-			c.z = rand()%10;
-			n = vec_norm(vec_cross(vec_sub(b,a), vec_sub(c,a)));
-p4 = vec_project_plane(camera.position, a, n);
-		}
         BeginDrawing();
             ClearBackground(RAYWHITE);
 			BeginMode3D(camera);
@@ -200,21 +247,20 @@ p4 = vec_project_plane(camera.position, a, n);
 				DrawLine3D(a,b,BLUE);
 				DrawLine3D(b,c,BLUE);
 				DrawLine3D(a,c,BLUE);
-
+#define HALFRED CLITERAL(Color){255,0,0,128}
+#define HALFGREEN CLITERAL(Color){0,255,0,128}
+#define HALFBLUE CLITERAL(Color){0,0,255,128}
 		if(IsKeyPressed(KEY_SPACE))
 		{
 			p = camera.position;
 			ray = GetMouseRay((Vector2){screenWidth/2, screenHeight/2}, camera);
 			vel = vec_mul_f(ray.direction, 5);
 			p2 = vec_add(p, vel);
-			if(tri_swept(a, b, c, n, p, r, &vel, &pout))
-				p2 = vec_add(pout, vel);
+			if(swept_tri_collision(p, r, vel, a, b, c, n, &col))
+				p2 = vec_add(col.pos, col.vel);
 			else
 				p2 = vec_add(p, vel);
 		}
-#define HALFRED CLITERAL(Color){255,0,0,128}
-#define HALFGREEN CLITERAL(Color){0,255,0,128}
-#define HALFBLUE CLITERAL(Color){0,0,255,128}
 vec3f p3 = vec_add(p, vec_mul_f(ray.direction,5));
 DrawLine3D(p, p3, RED);
 DrawSphere(p4, r, RED);
@@ -224,11 +270,11 @@ DrawSphere(p4, r, RED);
 
 			DrawSphere(p, r, HALFRED);
 			DrawSphere(p2, r/2, HALFGREEN);
-			DrawSphere(pout, r, HALFBLUE);
-			DrawLine3D(p, pout, RED);
-			DrawLine3D(pout, p2, RED);
+			DrawSphere(col.pos, r, HALFBLUE);
+			DrawLine3D(p, col.pos, RED);
+			DrawLine3D(col.pos, p2, RED);
 
-			//DrawLine(p.x+300, p.y+300, pout.x+300, pout.y+300, RED);
+			//DrawLine(p.x+300, p.y+300, col.pos.x+300, col.pos.y+300, RED);
 			EndMode3D();
         EndDrawing();
     }

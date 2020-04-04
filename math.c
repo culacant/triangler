@@ -13,7 +13,7 @@ float vec_len(vec3f a)
 {
 	return sqrtf(a.x*a.x + a.y*a.y + a.z*a.z);
 }
-float vec_len_2(vec3f a)
+float vec_len2(vec3f a)
 {
 	return (a.x*a.x + a.y*a.y + a.z*a.z);
 }
@@ -26,8 +26,14 @@ float vec_dist(vec3f a, vec3f b)
 	float dx = b.x-a.x;
 	float dy = b.y-a.y;
 	float dz = b.z-a.z;
-
 	return sqrtf(dx*dx + dy*dy + dz*dz);
+}
+float vec_dist2(vec3f a, vec3f b)
+{
+	float dx = b.x-a.x;
+	float dy = b.y-a.y;
+	float dz = b.z-a.z;
+	return (dx*dx + dy*dy + dz*dz);
 }
 vec3f vec_add(vec3f a, vec3f b)
 {
@@ -140,6 +146,19 @@ vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
 	float dist = vec_dot(v, n);
 	return vec_sub(p, vec_mul_f(n,dist));
 }
+vec3f vec_project_line(vec3f p, vec3f a, vec3f b)
+{
+	vec3f ab = vec_sub(b,a);
+	vec3f ap = vec_sub(p,a);
+	float abap = vec_dot(ab, ap);
+	float len = vec_len2(ab);
+	return vec_add(a, vec_mul_f(ab, abap/len));
+}
+vec3f vec_project_segment(vec3f p, vec3f a, vec3f b)
+{
+	vec3f proj = vec_project_line(p, a, b);
+	return vec3f_clamp(proj, a, b);
+}
 
 void vec2i_swap(vec2i *a, vec2i *b)
 {
@@ -199,6 +218,15 @@ vec4f vec4f_lerp(vec4f a, vec4f b, float amt)
        return out;
 }
 
+vec3f vec3f_clamp(vec3f p, vec3f a, vec3f b)
+{
+	vec3f out;
+	out.x = a.x < b.x ? clamp_f(p.x, a.x, b.x) : clamp_f(p.x, b.x, a.x);
+	out.y = a.y < b.y ? clamp_f(p.y, a.y, b.y) : clamp_f(p.y, b.y, a.y);
+	out.z = a.z < b.z ? clamp_f(p.z, a.z, b.z) : clamp_f(p.z, b.z, a.z);
+	return out;
+}
+
 float lerp(float a, float b, float amt)
 {
 	return (float)a+amt*(b-a);
@@ -216,6 +244,14 @@ float inv_lerp_i(int a, int b, int c)
 	return (float)(c-a)/(b-a);
 }
 
+float clamp_f(float a, float min, float max)
+{
+	if(a <= min)
+		return min;
+	else if(a >= max)
+		return max;
+	return a;
+}
 int clamp_i(int a, int min, int max)
 {
 	if(a <= min)

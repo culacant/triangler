@@ -21,17 +21,17 @@ vec3f camray_model_intersect(model m)
 	return out.pos;
 }
 
-#define GRAVITY (vec3f){0.0f, 0.0f, -0.02f}
+#define GRAVITY (vec3f){0.0f, 0.0f, -0.00f}
 
 int main()
 {
 	char debug_text[256];
-	texture t_head = loadtga("res/head.tga");
+	texture t_tiles = loadtga("res/tiles.tga");
 	model iqe = loadiqe("res/testlvl.iqe");
 	model sphere = loadiqe("res/sphere.iqe");
 	texture t_red = loadtga("res/red.tga");
 
-	player p = player_init((vec3f){0.0f, 0.0f, 5.0f});
+	player p = player_init((vec3f){10.0f, 10.0f, 5.0f});
 
 
 	buf_init();
@@ -61,22 +61,21 @@ int main()
 		}
 		if(input_key(KEY_W))
 		{
-			p.vel.x += 0.1f;
+			p.vel.x += 0.01f;
 		}
 		if(input_key(KEY_S))
 		{
-			p.vel.x -= 0.1f;
+			p.vel.x -= 0.01f;
 		}
 		if(input_key(KEY_A))
 		{
-			p.vel.y += 0.1f;
+			p.vel.y += 0.01f;
 		}
 		if(input_key(KEY_D))
 		{
-			p.vel.y -= 0.1f;
+			p.vel.y -= 0.01f;
 		}
 
-//		p.vel = vec_add(p.vel, GRAVITY);
 		player_vel_from_face(&p);
 		player_collide(&p, iqe);
 		p.vel = GRAVITY;
@@ -91,7 +90,7 @@ int main()
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		camera_update_mat(CAMERA);
 
-		drawmodel_tex(iqe,t_head);
+		drawmodel_tex(iqe,t_tiles);
 		drawmodel_tex(sphere,t_red);
 //		drawmodel_wire(iqe, color_rgb(255,255,0));
 /*
@@ -113,7 +112,7 @@ int main()
 		buf_flush();
 		input_flush();
 	}
-	unloadtex(t_head);
+	unloadtex(t_tiles);
 	unloadmodel(iqe);
 	unloadtex(t_red);
 	unloadmodel(sphere);
