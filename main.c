@@ -28,10 +28,11 @@ int main()
 	char debug_text[256];
 	texture t_tiles = loadtga("res/tiles.tga");
 	model iqe = loadiqe("res/testlvl.iqe");
+	model iqe_col = loadiqe("res/testlvl_col.iqe");
 	model sphere = loadiqe("res/sphere.iqe");
 	texture t_red = loadtga("res/red.tga");
 
-	player p = player_init((vec3f){10.0f, 10.0f, 5.0f});
+	player p = player_init((vec3f){10.0f, 10.0f, 1.0f});
 
 
 	buf_init();
@@ -61,27 +62,21 @@ int main()
 		}
 		if(input_key(KEY_W))
 		{
-			p.vel.x += 0.01f;
+			p.vel.x += 0.001f;
 		}
 		if(input_key(KEY_S))
 		{
-			p.vel.x -= 0.01f;
+			p.vel.x -= 0.001f;
 		}
 		if(input_key(KEY_A))
 		{
-			p.vel.y += 0.01f;
+			p.vel.y += 0.001f;
 		}
 		if(input_key(KEY_D))
 		{
-			p.vel.y -= 0.01f;
+			p.vel.y -= 0.001f;
 		}
 
-		player_vel_from_face(&p);
-		player_collide(&p, iqe);
-		p.vel = GRAVITY;
-		player_collide(&p, iqe);
-		p.pos.z += SMALLNR;
-		sphere.trans = mat_transform(p.pos);
 
 		CAMERA->pos = p.pos;
 		camera_target_from_angle(CAMERA);
@@ -90,20 +85,15 @@ int main()
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		camera_update_mat(CAMERA);
 
-		drawmodel_tex(iqe,t_tiles);
-		drawmodel_tex(sphere,t_red);
-//		drawmodel_wire(iqe, color_rgb(255,255,0));
-/*
-		sprintf(debug_text, "TIME: %i\npos: %f %f %f\ntar: %f %f %f\nang: %f %f", 
+		player_vel_from_face(&p);
+		player_collide(&p, iqe_col);
+		p.pos.z += SMALLNR;
+
+		drawmodel_tex(iqe_col,t_tiles);
+		sprintf(debug_text, "TIME: %i\npos: %f %f %f\nvel: %f %f %f\n",
 							FRAMETIME,
-							CAMERA->pos.x, CAMERA->pos.y, CAMERA->pos.z,
-							CAMERA->target.x, CAMERA->target.y, CAMERA->target.z,
-							CAMERA->angle.x, CAMERA->angle.y);
-*/
-		sprintf(debug_text, "TIME: %i\npos: %f %f %f\nface: %f",
-							FRAMETIME,
-							p.pos.x, p.pos.y, p.pos.z,
-							p.face);
+							p.pos.x, p.pos.y, p.pos.z, 
+							p.vel.x, p.vel.y, p.vel.z);
 		text_draw(5,5,debug_text , color_rgb(255,255,255));
 
 		if(input_key(KEY_Z))
@@ -114,6 +104,7 @@ int main()
 	}
 	unloadtex(t_tiles);
 	unloadmodel(iqe);
+	unloadmodel(iqe_col);
 	unloadtex(t_red);
 	unloadmodel(sphere);
 	buf_free();

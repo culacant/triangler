@@ -46,8 +46,8 @@
 #define PI 				3.14159265358979323846
 
 #define COLLISION_FALSE 0
-#define COLLISION_TRUE	0
-#define COLLISION_DONE  0
+#define COLLISION_TRUE	1
+#define COLLISION_DONE  2
 #define THIRD 			0.333333
 #define SMALLNR 		0.000001f
 
@@ -216,6 +216,7 @@ void camera_free();
 
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
+void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color);
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);

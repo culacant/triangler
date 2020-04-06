@@ -28,7 +28,7 @@ void player_collide(player *p, model m)
 	collision col = {0};
 	col.pos = p->pos;
 	col.vel = p->vel;
-	while(try < 5)
+	while(try < 1)
 	{
 		for(int i=0;i<m.fcnt;i++)
 		{
@@ -36,11 +36,13 @@ void player_collide(player *p, model m)
 			vec3f b = m.vp[m.fm[i*3+1]];
 			vec3f c = m.vp[m.fm[i*3+2]];
 			vec3f n = m.fn[i];
-			collided += swept_tri_collision(col.pos, p->r, col.vel, a, b, c, n, &col);
+			collided = swept_tri_collision(col.pos, p->r, col.vel, a, b, c, n, &col);
+			if(collided)
+			{
+			printf("%i\n", i);
+			}
 		}
 		try++;
-		if(collided == 0)
-			break;
 	}
 	p->pos = col.pos;
 	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
