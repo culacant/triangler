@@ -80,15 +80,6 @@ int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 }
 int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out)
 {
-	vec3f center = vec_mul_f(vec_add(a, vec_add(b, c)), THIRD);
-
-	float l1 = vec_dist(a, center);
-	float l2 = ((l1+3*r)/l1);
-
-	vec3f aadj = vec_add(center, vec_mul_f(vec_sub(a, center), l2));
-	vec3f badj = vec_add(center, vec_mul_f(vec_sub(b, center), l2));
-	vec3f cadj = vec_add(center, vec_mul_f(vec_sub(c, center), l2));
-
 	vec3f pv = vec_add(pos, vel);
 	float l;
 
@@ -116,7 +107,7 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 	{
 		l = inv_lerp(d1, d2, 0);
 		out->pos = vec3f_lerp(pos, pv, l);
-		if(point_in_tri(out->pos, aadj, badj, cadj))
+		if(point_in_tri(out->pos, a, b, c))
 		{
 			out->pos = vec_add(out->pos, vec_mul_f(n, r));
 			out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
@@ -128,7 +119,7 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
             float pab = vec_dist2(vec_project_segment(out->pos, a, b), out->pos);
             float pac = vec_dist2(vec_project_segment(out->pos, a, c), out->pos);
             float pbc = vec_dist2(vec_project_segment(out->pos, b, c), out->pos);
-            if(pab > r*r || pac > r*r || pbc > r*r)
+            if(pab < r*r || pac < r*r || pbc < r*r)
             {
                 out->pos = vec_add(out->pos, vec_mul_f(n, r));
                 out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
@@ -139,7 +130,7 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 	}
 	else if((d2*d2) <= (r*r*e2))
 	{
-		if(point_in_tri(pv, aadj, badj, cadj))
+		if(point_in_tri(pv, a, b, c))
 		{
 			out->pos = vec_project_plane(pv, a, n);
 
@@ -153,7 +144,7 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
             float pab = vec_dist2(vec_project_segment(pv, a, b), out->pos);
             float pac = vec_dist2(vec_project_segment(pv, a, c), out->pos);
             float pbc = vec_dist2(vec_project_segment(pv, b, c), out->pos);
-            if(pab > r*r || pac > r*r || pbc > r*r)
+            if(pab < r*r || pac < r*r || pbc < r*r)
             {
                 out->pos = vec_project_plane(pv, a, n);
                 out->pos = vec_add(out->pos, vec_mul_f(n, r));

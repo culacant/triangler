@@ -37,10 +37,6 @@ void player_collide(player *p, model m)
 			vec3f c = m.vp[m.fm[i*3+2]];
 			vec3f n = m.fn[i];
 			collided = swept_tri_collision(col.pos, p->r, col.vel, a, b, c, n, &col);
-			if(collided)
-			{
-			printf("%i\n", i);
-			}
 		}
 		try++;
 	}
