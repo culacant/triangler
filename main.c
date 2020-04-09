@@ -58,7 +58,7 @@ int main()
 		{
 			CAMERA->angle.x -= (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
 			CAMERA->angle.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
-//			p.face = CAMERA->angle.x;
+			p.face = CAMERA->angle.x;
 		}
 		if(input_key(KEY_W))
 		{
@@ -78,7 +78,7 @@ int main()
 		}
 
 
-//		CAMERA->pos = p.pos;
+		CAMERA->pos = p.pos;
 		camera_target_from_angle(CAMERA);
 		CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
 // length to target should be same since its normalized
