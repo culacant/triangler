@@ -680,9 +680,11 @@ model loadiqe(const char *filename)
 		}
 	}
 // calculate normals
+/*
 	vec3f a;
 	vec3f b;
 	vec3f c;
+*/
 	for(int f=0;f<out.fcnt;f++)
 	{
 // TODO: sanitize blender export normals

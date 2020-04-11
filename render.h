@@ -245,7 +245,9 @@ float vec_dist2(vec3f a, vec3f b);
 vec3f vec_add(vec3f a, vec3f b);
 vec3f vec_sub(vec3f a, vec3f b);
 vec3i vec_sub_i(vec3i a, vec3i b);
+vec3f vec_mul(vec3f a, vec3f b);
 vec3f vec_mul_f(vec3f a, float f);
+vec3f vec_div(vec3f a, vec3f b);
 vec3f vec_norm(vec3f a);
 vec3f barycentric(vec3f a, vec3f b, vec3f c, vec3f p);
 vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
@@ -285,7 +287,7 @@ mat4f mat_transform(vec3f pos);
 // physics.c functions
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
 int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
-int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
+int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
 
 
 // render.c functions

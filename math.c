@@ -59,9 +59,17 @@ vec3i vec_sub_i(vec3i a, vec3i b)
 	out.z = a.z-b.z;
 	return out;
 }
+vec3f vec_mul(vec3f a, vec3f b)
+{
+	return (vec3f){a.x*b.x, a.y*b.y, a.z*b.z};
+}
 vec3f vec_mul_f(vec3f a, float f)
 {
 	return (vec3f){a.x*f, a.y*f, a.z*f};
+}
+vec3f vec_div(vec3f a, vec3f b)
+{
+	return (vec3f){a.x/b.x, a.y/b.y, a.z/b.z};
 }
 vec3f vec_norm(vec3f a)
 {

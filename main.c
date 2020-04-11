@@ -21,7 +21,7 @@ vec3f camray_model_intersect(model m)
 	return out.pos;
 }
 
-#define GRAVITY (vec3f){0.0f, 0.0f, -0.00f}
+#define GRAVITY (vec3f){0.0f, 0.0f, -0.001f}
 
 int main()
 {
@@ -58,25 +58,15 @@ int main()
 		{
 			CAMERA->angle.x -= (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
 			CAMERA->angle.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
-			p.face = CAMERA->angle.x;
 		}
 		if(input_key(KEY_W))
-		{
 			p.vel.x += 0.001f;
-		}
 		if(input_key(KEY_S))
-		{
 			p.vel.x -= 0.001f;
-		}
 		if(input_key(KEY_A))
-		{
 			p.vel.y += 0.001f;
-		}
 		if(input_key(KEY_D))
-		{
 			p.vel.y -= 0.001f;
-		}
-
 
 		CAMERA->pos = p.pos;
 		camera_target_from_angle(CAMERA);
@@ -85,9 +75,13 @@ int main()
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		camera_update_mat(CAMERA);
 
+		p.face = CAMERA->angle.x;
 		player_vel_from_face(&p);
 		player_collide(&p, iqe_col);
+		p.vel = GRAVITY;
+		player_collide(&p, iqe_col);
 		p.pos.z += SMALLNR;
+
 		sphere.trans = mat_transform(p.pos);
 		drawmodel_tex(sphere, t_red);
 

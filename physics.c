@@ -78,7 +78,7 @@ int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 
 	return 1;
 }
-int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out)
+int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out)
 {
 	vec3f pv = vec_add(pos, vel);
 	float l;
@@ -109,7 +109,7 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
 		out->pos = vec3f_lerp(pos, pv, l);
 		if(point_in_tri(out->pos, a, b, c))
 		{
-			out->pos = vec_add(out->pos, vec_mul_f(n, r));
+			out->pos = vec_add(out->pos, n);
 			out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
 			out->distance2 = vec_len2(vel);
 			return COLLISION_TRUE;
@@ -119,22 +119,22 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
             float pab = vec_dist2(vec_project_segment(out->pos, a, b), out->pos);
             float pac = vec_dist2(vec_project_segment(out->pos, a, c), out->pos);
             float pbc = vec_dist2(vec_project_segment(out->pos, b, c), out->pos);
-            if(pab < r*r || pac < r*r || pbc < r*r)
+            if(pab < 1.0f || pac < 1.0f || pbc < 1.0f)
             {
-                out->pos = vec_add(out->pos, vec_mul_f(n, r));
+                out->pos = vec_add(out->pos, n);
                 out->vel = vec_sub(vec_project_plane(pv, out->pos, n), out->pos);
                 out->distance2 = vec_len2(vel);
                 return COLLISION_TRUE;
             }
         }
 	}
-	else if((d2*d2) <= (r*r*e2))
+	else if((d2*d2) <= e2)
 	{
 		if(point_in_tri(pv, a, b, c))
 		{
 			out->pos = vec_project_plane(pv, a, n);
 
-			out->pos = vec_add(out->pos, vec_mul_f(n, r));
+			out->pos = vec_add(out->pos, n);
 			out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
 			out->distance2 = 0.0f;
 			return COLLISION_DONE;
@@ -144,10 +144,10 @@ int swept_tri_collision(vec3f pos, float r, vec3f vel, vec3f a, vec3f b, vec3f c
             float pab = vec_dist2(vec_project_segment(pv, a, b), out->pos);
             float pac = vec_dist2(vec_project_segment(pv, a, c), out->pos);
             float pbc = vec_dist2(vec_project_segment(pv, b, c), out->pos);
-            if(pab < r*r || pac < r*r || pbc < r*r)
+            if(pab < 1.0f || pac < 1.0f || pbc < 1.0f)
             {
                 out->pos = vec_project_plane(pv, a, n);
-                out->pos = vec_add(out->pos, vec_mul_f(n, r));
+                out->pos = vec_add(out->pos, n);
                 out->vel = (vec3f) {0.0f, 0.0f, 0.0f};
                 out->distance2 = 0.0f;
                 return COLLISION_DONE;
