@@ -10,46 +10,59 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int status_2 = 20;
+typedef struct passing
+{
+	int status;
+	int vals[4];
+} passing;
 
 static int child_func(void* arg) {
-	int *proc_status = (int *)arg;
+	passing *p = (passing *) arg;
 	while(1)
 	{
 		kill(getpid(), SIGSTOP);
-		if(*proc_status %2)
-		{
-			printf("CHILD %i, %i\n", *proc_status, status_2);
-		}
+		printf("CHILD %i\n ", p->status);
+		for(int i=0;i<4;i++)
+			printf("%i, ", p->vals[i]);
+		printf("\n");
 	}
 	return 0;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) 
+{
 	// Allocate stack for child task.
 	const int STACK_SIZE = 65536;
 	char* stack = malloc(STACK_SIZE);
-	if (!stack) {
+	if (!stack) 
+	{
 		perror("malloc");
 		exit(1);
 	}
 
-	int proc_status[1];
-	proc_status[0] = 4;
-	int pid = clone(child_func, stack + STACK_SIZE, CLONE_VM | SIGCHLD, proc_status);
-	if(pid == -1) {
+	passing * p = calloc(sizeof(passing), 1);
+	int pid = clone(child_func, stack + STACK_SIZE, CLONE_VM | SIGCHLD, p);
+	if(pid == -1) 
+	{
 		perror("clone");
 		exit(1);
 	}
 	printf("loopin\n");
 
+	int x = 0;
+	int y = 0;
 	while(1)
 	{
-		proc_status[0]++;
-		status_2++;
-		printf("PARENT %i, %i\n", proc_status[0], status_2);
+		x++;
+		x = x%4;
+		y++;
+		p->vals[x] = y;
+		printf("PARENT %i\n ", p->status);
+		for(int i=0;i<4;i++)
+			printf("%i, ", p->vals[i]);
+		printf("\n");
+
 		kill(pid, SIGCONT);
-		sleep(1);
 //		printf("PID %i\n", pid);
 	}
 

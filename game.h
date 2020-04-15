@@ -21,7 +21,7 @@ typedef struct projectile
 	int ttl;
 	vec3f pos;
 	vec3f vel;
-	model m;
+	model_raw m;
 	texture *t;
 } projectile;
 typedef struct projectiles

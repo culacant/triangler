@@ -35,7 +35,6 @@
 #define RSHIFT 			16
 #define ASHIFT 			24
 
-#define FOCUS_DIST 		50.0f
 #define DEPTH 			1024
 #define ZBUF_MIN		INT_MIN
 
@@ -51,22 +50,29 @@
 #define THIRD 			0.333333
 #define SMALLNR 		0.000001f
 
+#define MODEL_CNT		32
+#define TRIANGLE_CNT	10048
+
 typedef struct vec2i vec2i;
 typedef struct vec3i vec3i;
 typedef struct vec3f vec3f;
 typedef struct vec2f vec2f;
 typedef struct vec4f vec4f;
 typedef struct mat4f mat4f;
-typedef struct model model;
+typedef struct model_raw model_raw;
 typedef struct texture texture;
 
 typedef struct intersection intersection;
 
 typedef struct camera camera;
 
-typedef struct BUFF BUFF;
-typedef struct INPUT INPUT;
-typedef struct MATS MATS;
+typedef struct render_triangle render_triangle;
+typedef struct game_triangle game_triangle;
+typedef struct model model;
+
+typedef struct input_data input_data;
+typedef struct render_data render_data;
+typedef struct game_data game_data;
 
 typedef struct vec2i
 {
@@ -104,7 +110,7 @@ typedef struct mat4f
 	float m2, m6, m10, m14;
 	float m3, m7, m11, m15;
 } mat4f;
-typedef struct model
+typedef struct model_raw
 {
 	int vcnt;
 	vec3f *vp;
@@ -113,8 +119,7 @@ typedef struct model
 	int fcnt;
 	int *fm;
 	vec3f *fn;
-	mat4f trans;
-} model;
+} model_raw;
 typedef struct texture
 {
 	int width;
@@ -149,18 +154,40 @@ typedef struct camera
 	mat4f fin;
 } camera;
 
-typedef struct BUFF
+typedef struct render_triangle
 {
-	unsigned int width;
-	unsigned int height;
-	unsigned int *fb;
-	int tty;
-	int fd;
-	unsigned int *buf;
-	int *zbuf;
-	int *zbufmin;
-} BUFF;
-typedef struct INPUT 
+    vec3f a;
+    vec3f b;
+    vec3f c;
+    vec3f n;
+
+    vec2f uva;
+    vec2f uvb;
+    vec2f uvc;
+
+} render_triangle;
+typedef struct game_triangle
+{
+    vec3f a;
+    vec3f b;
+    vec3f c;
+    vec3f n;
+} game_triangle;
+typedef struct model
+{
+    int draw;
+
+    int rtricnt;
+    render_triangle *rtri;
+
+    int gtricnt;
+    game_triangle *gtri;
+
+    texture *tex;
+    mat4f trans;
+} model;
+
+typedef struct input_data 
 {
 	int fd_kb;
 	char keys[KEY_MAX/8+1];
@@ -171,31 +198,54 @@ typedef struct INPUT
 	int mouseshow;
 	int mousex;
 	int mousey;
-} INPUT;
-typedef struct MATS
+} input_data;
+typedef struct render_data
 {
-	mat4f mv;
-	mat4f proj;
-	mat4f vp;
-	mat4f fin;
-} MATS;
+	int fd;
+	int tty;
+	unsigned int *fb;
+
+	unsigned int width;
+	unsigned int height;
+	unsigned int *buf;
+
+	int *zbuf;
+	int *zbufmin;
+
+	int modelcnt;
+	model models[MODEL_CNT];
+	int tricnt;
+	render_triangle tris[TRIANGLE_CNT];
+} render_data;
+typedef struct game_data
+{
+	int modelcnt;
+	model models[MODEL_CNT];
+	int tricnt;
+	game_triangle tris[TRIANGLE_CNT];
+} game_data;
 
 // render.c functions
-void buf_init();
-void buf_free();
-void buf_flush();
-void buf_px(int x, int y, unsigned int color);
-int buf_getz(int x, int y);
-void buf_setz(int x, int y, int z);
-void buf_px_safe(int x, int y, unsigned int color);
-int buf_getz_safe(int x, int y);
-void buf_setz_safe(int x, int y, int z);
+void render_init();
+void render_free();
+void render_run();
+void render_flush();
+void render_px(int x, int y, unsigned int color);
+int render_getz(int x, int y);
+void render_setz(int x, int y, int z);
+void render_px_safe(int x, int y, unsigned int color);
+int render_getz_safe(int x, int y);
+void render_setz_safe(int x, int y, int z);
 
 void zbuf_to_tga(const char *filename);
 
 void frametime_update();
 
 void text_draw(int x, int y, const char *text, unsigned int color);
+
+// game.c functions
+void game_init();
+void game_flush();
 
 void input_init();
 void input_flush();
@@ -207,6 +257,7 @@ int input_mouse_rely();
 int input_mouse_absx();
 int input_mouse_absy();
 
+// render.h functions
 void camera_update_mat(camera *cam);
 void camera_angle_from_target(camera *cam);
 void camera_target_from_angle(camera *cam);
@@ -221,10 +272,12 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
 
 void rect(vec2i a, vec2i size, unsigned int color);
 
-model loadiqe(const char *filename);
-void unloadmodel(model m);
-void drawmodel_wire(model m, unsigned int color);
-void drawmodel_tex(model m, texture t);
+model_raw loadiqe(const char *filename);
+void unload_model_raw(model_raw m);
+
+render_triangle* render_load_tris(model_raw m);
+game_triangle* game_load_tris(model_raw m);
+model* load_model(model_raw gmodel, model_raw rmodel, texture *t);
 
 texture loadtga(const char *filename);
 void unloadtex(texture t);
@@ -289,7 +342,6 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
 int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
 int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
 
-
 // render.c functions
 unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
 unsigned int brighten(unsigned int c, float b);
@@ -299,8 +351,14 @@ void print_vec3f(vec3f v);
 void print_vec3i(vec3i v);
 void print_vec4f(vec4f v);
 
-BUFF BUFFER;
-INPUT INPUTS;
+// mem.c functions
+void* malloc_render_tri(int cnt);
+void* malloc_game_tri(int cnt);
+void* malloc_model(int cnt);
+
+input_data INPUT_DATA;
+render_data RENDER_DATA;
+game_data GAME_DATA;
 camera *CAMERA;
 int FRAMETIME;
 
