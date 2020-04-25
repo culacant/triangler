@@ -1,0 +1,13 @@
+powerup 
+	infinite ammo+click to shoot
+	dmg done increases speed/jump/air control
+
+rocket launcher with beehive rounds
+chain lightning
+overkill damage added to base damage
+melee /w projectile reflect
+
+crowd control
+	stun
+	fear
+	slow
