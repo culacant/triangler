@@ -81,15 +81,15 @@ int input_mouse_absy()
     return INPUT_DATA.mousey;
 }
 
-
-
 player player_init(vec3f p)
 {
 	player out;
 	out.pos = p;
 	out.vel = (vec3f){0.0f, 0.0f, 0.0f};
+	out.impulse = (vec3f){0.0f, 0.0f, 0.0f};
 	out.face = 0.0f;
 	out.r = (vec3f){1/1.0f, 1/1.0f, 1/2.0f};
+	out.flags = FLAG_NONE;
 	return out;
 }
 void player_free()
@@ -100,12 +100,19 @@ void player_vel_from_face(player *p)
 {
 	float sa = sinf(p->face);
 	float ca = cosf(p->face);
-	vec3f ovel = p->vel;
 
-	p->vel.x = sa*ovel.x + ca*ovel.y;
-	p->vel.y = ca*ovel.x - sa*ovel.y;
+	if(p->flags & FLAG_AIR)
+		p->impulse = vec_mul_f(p->impulse, AIRCONTROL_FRAC);
+	if(p->flags & FLAG_GND)
+	{
+		p->vel = vec_mul_f(p->vel, DRAG_FRAC);
+	p->vel.x += sa*p->impulse.x + ca*p->impulse.y;
+	p->vel.y += ca*p->impulse.x - sa*p->impulse.y;
+	}
+
+	p->vel.z += p->impulse.z;
 }
-void player_collide(player *p, model m)
+void player_collide(player *p, model *m)
 {
 	int try = 0;
 	int collided = 0;
@@ -114,20 +121,27 @@ void player_collide(player *p, model m)
 	col.vel = vec_mul(p->vel, p->r);;
 	while(try < 3)
 	{
-		for(int i=0;i<m.gtricnt;i++)
+		for(int i=0;i<m->gtricnt;i++)
 		{
-			vec3f a = vec_mul(m.gtri[i].a, p->r);
-			vec3f b = vec_mul(m.gtri[i].b, p->r);
-			vec3f c = vec_mul(m.gtri[i].c, p->r);
-			vec3f n = m.gtri[i].n;
+			vec3f a = vec_mul(m->gtri[i].a, p->r);
+			vec3f b = vec_mul(m->gtri[i].b, p->r);
+			vec3f c = vec_mul(m->gtri[i].c, p->r);
+			vec3f n = m->gtri[i].n;
 			collided += swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
 		}
 		if(collided == 0)
+		{
+			p->flags = FLAG_AIR;
 			break;
+		}
+		else
+			p->flags = FLAG_GND;
 		try++;
 	}
 	p->pos = vec_div(col.pos, p->r);
-	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
+	p->pos.z += SMALLNR;
+//	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
+	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
 
 void projectiles_init()
@@ -148,7 +162,7 @@ void projectiles_tick(int dt)
 		{	
 			cur->ttl -= dt;
 			cur->pos = vec_add(cur->pos, cur->vel);
-//			cur->m.trans = mat_transform(cur->pos);
+			cur->m->trans = mat_transform(cur->pos);
 //			drawmodel_tex(cur->m, *cur->t);
 		}	
 	}

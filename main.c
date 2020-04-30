@@ -21,8 +21,6 @@ vec3f camray_model_intersect(model_raw m)
 	return out.pos;
 }
 
-#define GRAVITY (vec3f){0.0f, 0.0f, -0.001f}
-
 int main()
 {
 	game_init();
@@ -60,22 +58,22 @@ int main()
 			CAMERA->angle.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
 		}
 		if(input_key(KEY_W))
-			p.vel.x += 0.001f;
+			p.impulse.x += 0.005f;
 		if(input_key(KEY_S))
-			p.vel.x -= 0.001f;
+			p.impulse.x -= 0.005f;
 		if(input_key(KEY_A))
-			p.vel.y += 0.001f;
+			p.impulse.y += 0.005f;
 		if(input_key(KEY_D))
-			p.vel.y -= 0.001f;
+			p.impulse.y -= 0.005f;
+		if(input_key(KEY_SPACE))
+			p.impulse.z += JUMP_HEIGHT;
 
 // length to target should be same since its normalized
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		p.face = CAMERA->angle.x;
+		p.vel.z -= GRAVITY.z;
 		player_vel_from_face(&p);
-		player_collide(&p, *m);
-		p.vel = GRAVITY;
-		player_collide(&p, *m);
-		p.pos.z += SMALLNR;
+		player_collide(&p, m);
 
 
 
@@ -91,10 +89,10 @@ int main()
 		camera_update_mat(CAMERA);
 
 		render_run();
-		sprintf(debug_text, "TIME: %i\npos: %f %f %f\nvel: %f %f %f\n",
+		sprintf(debug_text, "TIME: %i\npos: %f %f %f\nvel: %f %f %f\nflags: %i",
 							FRAMETIME,
 							p.pos.x, p.pos.y, p.pos.z, 
-							p.vel.x, p.vel.y, p.vel.z);
+							p.vel.x, p.vel.y, p.vel.z,p.flags);
 		text_draw(5,5,debug_text , color_rgb(255,255,255));
 		render_flush();
 	}

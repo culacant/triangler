@@ -1,6 +1,6 @@
 powerup 
 	infinite ammo+click to shoot
-	dmg done increases speed/jump/air control
+	hits increases speed/jump/air control
 
 rocket launcher with beehive rounds
 chain lightning
@@ -11,3 +11,13 @@ crowd control
 	stun
 	fear
 	slow
+
+
+
+implement:
+	- air control (25%?)
+	- jumping/longer hold = higher
+	- drag (lots on collision (25% left?), little on air (75%?)
+
+	- projectiles
+

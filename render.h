@@ -208,7 +208,6 @@ typedef struct render_data
 	unsigned int width;
 	unsigned int height;
 	unsigned int *buf;
-
 	int *zbuf;
 	int *zbufmin;
 
