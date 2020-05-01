@@ -760,6 +760,12 @@ model* load_model(model_raw gmodel, model_raw rmodel, texture *t)
 
 	return out;
 }
+model* dupe_model(model *m)
+{
+	model *out = malloc_model(1);
+	memcpy(out, m, sizeof(model));
+	return out;
+}
 
 texture loadtga(const char *filename)
 {
@@ -823,29 +829,6 @@ void drawtex(texture t)
 
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 {
-/*
-	if(posin[0].x < 0 && posin[1].x < 0 && posin[2].x < 0)
-	{
-		*cntout = 0;
-		return;
-	}
-	else if(posin[0].x >= RENDER_DATA.width && posin[1].x >= RENDER_DATA.width && posin[2].x >= RENDER_DATA.width)
-	{
-		*cntout = 0;
-		return;
-	}
-	if(posin[0].y < 0 && posin[1].y < 0 && posin[2].y < 0)
-	{
-		*cntout = 0;
-		return;
-	}
-	else if(posin[0].y >= RENDER_DATA.height && posin[1].y >= RENDER_DATA.height && posin[2].y >= RENDER_DATA.height)
-	{
-		*cntout = 0;
-		return;
-	}
-*/
-
 	if(posin[0].z >= CLIP_NEAR && posin[1].z >= CLIP_NEAR && posin[2].z >= CLIP_NEAR)
 	{
 		*cntout = 0;

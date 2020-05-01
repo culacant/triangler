@@ -123,11 +123,12 @@ void player_collide(player *p, model *m)
 	{
 		for(int i=0;i<m->gtricnt;i++)
 		{
-			vec3f a = vec_mul(m->gtri[i].a, p->r);
-			vec3f b = vec_mul(m->gtri[i].b, p->r);
-			vec3f c = vec_mul(m->gtri[i].c, p->r);
+			vec3f a = vec_trans(vec_mul(m->gtri[i].a, p->r),m->trans);
+			vec3f b = vec_trans(vec_mul(m->gtri[i].b, p->r),m->trans);
+			vec3f c = vec_trans(vec_mul(m->gtri[i].c, p->r),m->trans);
 			vec3f n = m->gtri[i].n;
 			collided += swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
+			col.pos = vec_add(col.pos, vec_mul_f(n, SMALLNR));
 		}
 		if(collided == 0)
 		{
@@ -157,7 +158,7 @@ void projectiles_tick(int dt)
 	projectile *cur;
 	for(int i=0;i<PROJECTILECNT;i++)
 	{
-		cur = &PROJECTILES.arr[PROJECTILES.it];
+		cur = &PROJECTILES.arr[i];
 		if(cur->ttl > 0)
 		{	
 			cur->ttl -= dt;

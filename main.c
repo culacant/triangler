@@ -26,13 +26,17 @@ int main()
 	game_init();
 	render_init();
 	input_init();
+	projectiles_init();
 
 	char debug_text[256];
 	model_raw iqe = loadiqe("res/testlvl.iqe");
 	model_raw iqe_col = loadiqe("res/testlvl_col.iqe");
+	model_raw iqe_sphere = loadiqe("res/sphere.iqe");
 	texture t_tiles = loadtga("res/tiles.tga");
 
 	model *m = load_model(iqe_col, iqe, &t_tiles);
+	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
+	sphere->draw = 0;
 
 	player p = player_init((vec3f){10.0f, 10.0f, 1.0f});
 
@@ -68,6 +72,16 @@ int main()
 		if(input_key(KEY_SPACE))
 			p.impulse.z += JUMP_HEIGHT;
 
+		if(input_key(KEY_R))
+		{
+			projectile bullet;
+			bullet.ttl = 100;
+			bullet.pos = p.pos;
+			bullet.vel = (vec3f){0.0f,1.0f, 0.0f};
+			bullet.m = dupe_model(sphere);
+			bullet.m->draw = 1;
+			projectile_add(bullet);
+		}
 // length to target should be same since its normalized
 //		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
 		p.face = CAMERA->angle.x;
@@ -75,7 +89,7 @@ int main()
 		player_vel_from_face(&p);
 		player_collide(&p, m);
 
-
+		projectiles_tick(0);
 
 		if(input_key(KEY_Z))
 			zbuf_to_tga("./zbuf.tga");
@@ -99,6 +113,7 @@ int main()
 	unloadtex(t_tiles);
 	unload_model_raw(iqe);
 	unload_model_raw(iqe_col);
+	unload_model_raw(iqe_sphere);
 	render_free();
 	input_free();
 	return 0;

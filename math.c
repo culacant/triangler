@@ -117,6 +117,14 @@ vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p)
 	out.x = 1.0f-(out.z+out.y);
 	return out;
 }
+vec3f bary3carth(vec3i a, vec3i b, vec3i c, vec3f p)
+{
+	vec3f out = {0};
+	out.x = a.x*p.x+b.x*p.y+c.x*p.z;
+	out.y = a.y*p.x+b.y*p.y+c.y*p.z;
+	out.z = a.z*p.x+b.z*p.y+c.z*p.z;
+	return out;
+}
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p)
 {
 	vec2f out = {0};

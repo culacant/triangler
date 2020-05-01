@@ -242,27 +242,9 @@ void frametime_update();
 
 void text_draw(int x, int y, const char *text, unsigned int color);
 
-// game.c functions
-void game_init();
-void game_flush();
-
-void input_init();
-void input_flush();
-void input_free();
-int input_key(int key);
-int input_mouse_button(char button);
-int input_mouse_relx();
-int input_mouse_rely();
-int input_mouse_absx();
-int input_mouse_absy();
-
-// render.h functions
 void camera_update_mat(camera *cam);
 void camera_angle_from_target(camera *cam);
 void camera_target_from_angle(camera *cam);
-
-camera camera_init();
-void camera_free();
 
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
@@ -277,6 +259,7 @@ void unload_model_raw(model_raw m);
 render_triangle* render_load_tris(model_raw m);
 game_triangle* game_load_tris(model_raw m);
 model* load_model(model_raw gmodel, model_raw rmodel, texture *t);
+model* dupe_model(model *m);
 
 texture loadtga(const char *filename);
 void unloadtex(texture t);
@@ -285,6 +268,29 @@ void drawtex(texture t);
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout);
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout);
+
+unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
+unsigned int brighten(unsigned int c, float b);
+
+void print_mat(mat4f m);
+void print_vec3f(vec3f v);
+void print_vec3i(vec3i v);
+void print_vec4f(vec4f v);
+
+
+// game.c functions
+void game_init();
+void game_flush();
+
+void input_init();
+void input_flush();
+void input_free();
+int input_key(int key);
+int input_mouse_button(char button);
+int input_mouse_relx();
+int input_mouse_rely();
+int input_mouse_absx();
+int input_mouse_absy();
 
 // math.c functions
 vec3f vec_cross(vec3f a, vec3f b);
@@ -303,6 +309,7 @@ vec3f vec_div(vec3f a, vec3f b);
 vec3f vec_norm(vec3f a);
 vec3f barycentric(vec3f a, vec3f b, vec3f c, vec3f p);
 vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
+vec3f bary3carth(vec3i a, vec3i b, vec3i c, vec3f p);
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p);
 vec3f vec_trans(vec3f a, mat4f m);
 vec3f vec_project_plane(vec3f p, vec3f o, vec3f n);
@@ -340,15 +347,6 @@ mat4f mat_transform(vec3f pos);
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
 int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
 int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
-
-// render.c functions
-unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
-unsigned int brighten(unsigned int c, float b);
-
-void print_mat(mat4f m);
-void print_vec3f(vec3f v);
-void print_vec3i(vec3i v);
-void print_vec4f(vec4f v);
 
 // mem.c functions
 void* malloc_render_tri(int cnt);

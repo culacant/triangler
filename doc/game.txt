@@ -6,6 +6,7 @@ rocket launcher with beehive rounds
 chain lightning
 overkill damage added to base damage
 melee /w projectile reflect
+first shot double damage (pistol?)
 
 crowd control
 	stun
