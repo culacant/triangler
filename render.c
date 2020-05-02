@@ -53,7 +53,7 @@ void render_init()
 
 	RENDER_DATA.modelcnt = 0;
 	RENDER_DATA.tricnt = 0;
-	frametime_update();
+	render_frametime_update();
 }
 void render_free()
 {
@@ -133,7 +133,7 @@ void render_flush()
 	memset(RENDER_DATA.buf, 0, sizeof(unsigned int)*RENDER_DATA.width*RENDER_DATA.height);
 	memcpy(RENDER_DATA.zbuf, RENDER_DATA.zbufmin, sizeof(int)*RENDER_DATA.width*RENDER_DATA.height);
 
-	frametime_update();
+	render_frametime_update();
 }
 void render_px(int x, int y, unsigned int color)
 {
@@ -204,14 +204,14 @@ void zbuf_to_tga(const char *filename)
 	return;
 }
 
-void frametime_update()
+void render_frametime_update()
 {
 	static int lasttime;
 	int curtime;
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	curtime = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
-	FRAMETIME = curtime - lasttime;
+	RENDER_DATA.frametime = curtime - lasttime;
 	lasttime = curtime;
 }
 

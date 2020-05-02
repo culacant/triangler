@@ -56,59 +56,19 @@ int main()
 
 	while(!input_key(KEY_Q))
 	{
-		if(INPUT_DATA.mouseactivity)
-		{
-			CAMERA->angle.x -= (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
-			CAMERA->angle.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
-		}
-		if(input_key(KEY_W))
-			p.impulse.x += 0.005f;
-		if(input_key(KEY_S))
-			p.impulse.x -= 0.005f;
-		if(input_key(KEY_A))
-			p.impulse.y += 0.005f;
-		if(input_key(KEY_D))
-			p.impulse.y -= 0.005f;
-		if(input_key(KEY_SPACE))
-			p.impulse.z += JUMP_HEIGHT;
-
-		p.face.x = CAMERA->angle.x;
-		p.vel.z -= GRAVITY.z;
-		player_update_vel(&p);
-		player_update_muzzle(&p);
-		player_collide(&p, m);
-
-		if(input_key(KEY_R))
-		{
-			projectile bullet;
-			bullet.ttl = 100;
-			bullet.pos = p.muzzle;
-			float sa = sin(p.face.x);
-			float ca = cos(p.face.x);
-			bullet.vel = (vec3f){sa,ca,0.0f};
-			bullet.m = dupe_model(sphere);
-			bullet.m->draw = 1;
-			projectile_add(bullet);
-		}
-// length to target should be same since its normalized
-//		CAMERA->proj.m11 = -1.0f/vec3f_len(vec3f_sub(CAMERA->pos, CAMERA->target));
-
-		projectiles_tick(0);
-
-		if(input_key(KEY_Z))
-			zbuf_to_tga("./zbuf.tga");
-			
+		game_run(&p, m, sphere);
 		game_flush();
 		input_flush();
 
 		CAMERA->pos = p.pos;
+		CAMERA->angle = p.face;
 		camera_target_from_angle(CAMERA);
 		CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
 		camera_update_mat(CAMERA);
 
 		render_run();
-		sprintf(debug_text, "TIME: %i\npos: %f %f %f\nvel: %f %f %f\nflags: %i",
-							FRAMETIME,
+		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\nvel: %f %f %f\nflags: %i",
+							GAME_DATA.frametime, RENDER_DATA.frametime,
 							p.pos.x, p.pos.y, p.pos.z, 
 							p.vel.x, p.vel.y, p.vel.z,p.flags);
 		text_draw(5,5,debug_text , color_rgb(255,255,255));

@@ -39,6 +39,7 @@ typedef struct projectile
 	int ttl;
 	vec3f pos;
 	vec3f vel;
+	float radius;
 	model *m;
 } projectile;
 typedef struct projectiles
@@ -52,13 +53,14 @@ player player_init();
 void player_free();
 
 void player_update_vel(player *p);
-void player_fire(player *p);
 void player_update_muzzle(player *p);
 void player_collide(player *p, model *m);
+void player_fire(player *p);
 
 void projectiles_init();
 void projectiles_free();
-void projectiles_tick(int dt);
+void projectiles_tick(int dt, model *m);
+int projectile_collide(projectile *p, model *m);
 
 int projectile_add(projectile p);
 

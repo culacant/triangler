@@ -4,11 +4,66 @@ void game_init()
 {
 	GAME_DATA.modelcnt = 0;
 	GAME_DATA.tricnt = 0;
+	game_frametime_update();
 }
 void game_flush()
 {
 	RENDER_DATA.modelcnt = GAME_DATA.modelcnt;
 	memcpy(RENDER_DATA.models, GAME_DATA.models, sizeof(model)*GAME_DATA.modelcnt);
+	game_frametime_update();
+}
+
+void game_run(player *p , model *m, model *sphere)
+{       
+	if(INPUT_DATA.mouseactivity)
+	{
+		p->face.x -= (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
+		p->face.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
+	}
+	if(input_key(KEY_W))
+		p->impulse.x += 0.005f;
+	if(input_key(KEY_S))
+		p->impulse.x -= 0.005f;
+	if(input_key(KEY_A))
+		p->impulse.y += 0.005f;
+	if(input_key(KEY_D))
+		p->impulse.y -= 0.005f;
+	if(input_key(KEY_SPACE))
+		p->impulse.z += JUMP_HEIGHT;
+
+	p->vel.z -= GRAVITY.z;
+	player_update_vel(p);
+	player_update_muzzle(p);
+	player_collide(p, m); 
+
+	if(input_key(KEY_R))
+	{
+		projectile bullet;
+		bullet.ttl = 100;
+		bullet.pos = p->muzzle;
+		float sx = sin(p->face.x)*10;
+		float cx = cos(p->face.x)*10;
+		float sy = sin(p->face.y)*10;
+		bullet.vel = (vec3f){sx,cx,sy};
+		bullet.m = dupe_model(sphere);
+		bullet.m->draw = 1;
+		bullet.radius = 1/0.1f;
+		projectile_add(bullet);
+	}
+
+	projectiles_tick(1, m);
+
+}
+
+void game_frametime_update()
+{
+    static int lasttime;
+    int curtime;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    curtime = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
+    GAME_DATA.frametime = curtime - lasttime;
+    lasttime = curtime;
 }
 
 void input_init()
@@ -115,12 +170,13 @@ void player_update_vel(player *p)
 }
 void player_update_muzzle(player *p)
 {
-	float sa = sinf(p->face.x);
-	float ca = cosf(p->face.x);
+	float sx = sinf(p->face.x);
+	float cx = cosf(p->face.x);
+	float sy = sinf(p->face.y);
 
-	p->muzzle.x = p->pos.x + (sa*p->muzzle_ofs.x + ca*p->muzzle_ofs.y);
-	p->muzzle.y = p->pos.y + (ca*p->muzzle_ofs.x - sa*p->muzzle_ofs.y);
-	p->muzzle.z = p->pos.z + p->muzzle_ofs.z;
+	p->muzzle.x = p->pos.x + (sx*p->muzzle_ofs.x + cx*p->muzzle_ofs.y);
+	p->muzzle.y = p->pos.y + (cx*p->muzzle_ofs.x - sx*p->muzzle_ofs.y);
+	p->muzzle.z = p->pos.z + sy*p->muzzle_ofs.z;
 }
 void player_collide(player *p, model *m)
 {
@@ -136,9 +192,9 @@ void player_collide(player *p, model *m)
 		for(int i=0;i<m->gtricnt;i++)
 		{
 // trans only for moving objects
-			vec3f a = vec3f_trans(vec3f_mul(m->gtri[i].a, p->r),m->trans);
-			vec3f b = vec3f_trans(vec3f_mul(m->gtri[i].b, p->r),m->trans);
-			vec3f c = vec3f_trans(vec3f_mul(m->gtri[i].c, p->r),m->trans);
+			vec3f a = vec3f_mul(m->gtri[i].a, p->r);
+			vec3f b = vec3f_mul(m->gtri[i].b, p->r);
+			vec3f c = vec3f_mul(m->gtri[i].c, p->r);
 // FIXME: transform n
 			vec3f n = m->gtri[i].n;
 			int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
@@ -168,25 +224,50 @@ void player_collide(player *p, model *m)
 void projectiles_init()
 {
 	PROJECTILES.it = 0;
+	for(int i=0;i<PROJECTILECNT;i++)
+		PROJECTILES.arr[i].ttl = -1;
 }
 void projectiles_free()
 {
 	PROJECTILES.it = 0;
 }
-void projectiles_tick(int dt)
+void projectiles_tick(int dt, model *m)
 {
 	projectile *cur;
 	for(int i=0;i<PROJECTILECNT;i++)
 	{
 		cur = &PROJECTILES.arr[i];
-		if(cur->ttl > 0)
+		if(cur->ttl >= 0)
 		{	
 			cur->ttl -= dt;
 			cur->pos = vec3f_add(cur->pos, cur->vel);
 			cur->m->trans = mat_transform(cur->pos);
-//			drawmodel_tex(cur->m, *cur->t);
+			if(projectile_collide(cur, m) || cur->ttl < 0)
+			{
+				cur->ttl = -1;
+				cur->m->draw = 0;
+			}
 		}	
 	}
+}
+int projectile_collide(projectile *p, model *m)
+{
+	collision col = {0};
+	vec3f pos = vec3f_scale(p->pos, p->radius);
+	vec3f vel = vec3f_scale(p->vel, p->radius);
+
+	for(int i=0;i<m->gtricnt;i++)
+	{
+// trans only for moving objects
+		vec3f a = vec3f_scale(m->gtri[i].a, p->radius);;
+		vec3f b = vec3f_scale(m->gtri[i].b, p->radius);;
+		vec3f c = vec3f_scale(m->gtri[i].c, p->radius);;
+		vec3f n = m->gtri[i].n;
+
+		if(swept_tri_collision(pos, vel, a, b, c, n, &col) != COLLISION_FALSE)
+			return COLLISION_TRUE;
+	}
+	return COLLISION_FALSE;
 }
 
 int projectile_add(projectile p)

@@ -211,6 +211,8 @@ typedef struct render_data
 	int *zbuf;
 	int *zbufmin;
 
+	int frametime;
+
 	int modelcnt;
 	model models[MODEL_CNT];
 	int tricnt;
@@ -218,6 +220,8 @@ typedef struct render_data
 } render_data;
 typedef struct game_data
 {
+	int frametime;
+
 	int modelcnt;
 	model models[MODEL_CNT];
 	int tricnt;
@@ -238,7 +242,7 @@ void render_setz_safe(int x, int y, int z);
 
 void zbuf_to_tga(const char *filename);
 
-void frametime_update();
+void render_frametime_update();
 
 void text_draw(int x, int y, const char *text, unsigned int color);
 
@@ -281,6 +285,9 @@ void print_vec4f(vec4f v);
 // game.c functions
 void game_init();
 void game_flush();
+void game_run();
+
+void game_frametime_update();
 
 void input_init();
 void input_flush();
@@ -357,6 +364,5 @@ input_data INPUT_DATA;
 render_data RENDER_DATA;
 game_data GAME_DATA;
 camera *CAMERA;
-int FRAMETIME;
 
 #endif // RENDER_H
