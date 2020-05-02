@@ -96,9 +96,9 @@ void render_run()
 
             for(int f=0;f<RENDER_DATA.models[m].rtricnt;f++)
             {
-                in[0] = vec_trans(RENDER_DATA.models[m].rtri[f].a, mv);
-                in[1] = vec_trans(RENDER_DATA.models[m].rtri[f].b, mv);
-                in[2] = vec_trans(RENDER_DATA.models[m].rtri[f].c, mv);
+                in[0] = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
+                in[1] = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mv);
+                in[2] = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mv);
         // FIXME: normals
                 uvin[0] = RENDER_DATA.models[m].rtri[f].uva;
                 uvin[1] = RENDER_DATA.models[m].rtri[f].uvb;
@@ -107,9 +107,9 @@ void render_run()
                 triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
                 for(int i=0;i<outcnt;i++)
                 {
-                    out[i*3+0] = vec_trans(out[i*3+0], CAMERA->fin);
-                    out[i*3+1] = vec_trans(out[i*3+1], CAMERA->fin);
-                    out[i*3+2] = vec_trans(out[i*3+2], CAMERA->fin);
+                    out[i*3+0] = vec3f_trans(out[i*3+0], CAMERA->fin);
+                    out[i*3+1] = vec3f_trans(out[i*3+1], CAMERA->fin);
+                    out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->fin);
 
                     ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
                     bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
@@ -271,7 +271,7 @@ void camera_target_from_angle(camera *cam)
 	cam->target.y = cosf(cam->angle.x);
 	cam->target.z = sinf(cam->angle.y);
 
-	cam->target = vec_add(cam->target, cam->pos);
+	cam->target = vec3f_add(cam->target, cam->pos);
 
 }
 
@@ -681,11 +681,11 @@ model_raw loadiqe(const char *filename)
 		b = out.vp[out.fm[f*3+1]];
 		c = out.vp[out.fm[f*3+2]];
 
-		out.fn[f] = vec_cross(vec_sub(b,a),vec_sub(c,a));
-		out.fn[f] = vec_norm(out.fn[f]);
+		out.fn[f] = vec_cross(vec3f_sub(b,a),vec3f_sub(c,a));
+		out.fn[f] = vec3f_norm(out.fn[f]);
 */
 
-		out.fn[f] = vec_norm(out.vn[out.fm[f*3+0]]);
+		out.fn[f] = vec3f_norm(out.vn[out.fm[f*3+0]]);
 	}
 	fclose(fp);
 	return out;
@@ -713,14 +713,14 @@ render_triangle* render_load_tris(model_raw m)
 		fi = m.fm[f*3+1];
 		out[f].b = m.vp[fi];
 		out[f].uvb = m.vt[fi];
-		out[f].n = vec_add(out[f].n, m.vn[fi]);
+		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
 
 		fi = m.fm[f*3+2];
 		out[f].c = m.vp[fi];
 		out[f].uvc = m.vt[fi];
-		out[f].n = vec_add(out[f].n, m.vn[fi]);
+		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
 
-		out[f].n = vec_norm(out[f].n);
+		out[f].n = vec3f_norm(out[f].n);
 	}
 	return out;
 }
@@ -736,13 +736,13 @@ game_triangle* game_load_tris(model_raw m)
 
 		fi = m.fm[f*3+1];
 		out[f].b = m.vp[fi];
-		out[f].n = vec_add(out[f].n, m.vn[fi]);
+		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
 
 		fi = m.fm[f*3+2];
 		out[f].c = m.vp[fi];
-		out[f].n = vec_add(out[f].n, m.vn[fi]);
+		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
 
-		out[f].n = vec_norm(out[f].n);
+		out[f].n = vec3f_norm(out[f].n);
 	}
 	return out;
 }

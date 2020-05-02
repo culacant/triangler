@@ -6,7 +6,8 @@
 #define PROJECTILECNT	0xff
 
 #define GRAVITY (vec3f){0.0f, 0.0f, 0.001f}
-#define AIRCONTROL_FRAC		0.1f
+#define FLOOR_Z_TRESHOLD	0.6f
+#define JUMP_FRAC 			0.1f
 #define DRAG_FRAC			0.5f
 #define JUMP_HEIGHT			0.005f
 
@@ -26,9 +27,12 @@ typedef struct player
 	vec3f pos;
 	vec3f vel;
 	vec3f impulse;
-	float face;
+	vec2f face;
 	vec3f r;
 	unsigned int flags;
+// weapon
+	vec3f muzzle;
+	vec3f muzzle_ofs;
 } player;
 typedef struct projectile
 {
@@ -47,7 +51,9 @@ typedef struct projectiles
 player player_init();
 void player_free();
 
-void player_vel_from_face(player *p);
+void player_update_vel(player *p);
+void player_fire(player *p);
+void player_update_muzzle(player *p);
 void player_collide(player *p, model *m);
 
 void projectiles_init();

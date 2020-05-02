@@ -11,13 +11,13 @@ render_triangle* rbuff_load_model(int vcnt, vec3f *vp, vec2f *vt, vec3f *vn, int
 
 		out[f].b = vp[f*3+1];
 		out[f].uvb = vt[f*3+1];
-		out[f].n = vec_add(out[f].n, vn[f*3+1]);
+		out[f].n = vec3f_add(out[f].n, vn[f*3+1]);
 
 		out[f].c = vp[f*3+2];
 		out[f].uvc = vt[f*3+2];
-		out[f].n = vec_add(out[f].n, vn[f*3+2]);
+		out[f].n = vec3f_add(out[f].n, vn[f*3+2]);
 
-		out[f].n = vec_norm(out[f].n);
+		out[f].n = vec3f_norm(out[f].n);
 	}
 	return out;
 }
@@ -30,12 +30,12 @@ game_triangle* gbuff_load_model(int vcnt, vec3f *vp, vec3f *vn, int fcnt, int *f
 		out[f].n = vn[f*3+0];
 
 		out[f].b = vp[f*3+1];
-		out[f].n = vec_add(out[f].n, vn[f*3+1]);
+		out[f].n = vec3f_add(out[f].n, vn[f*3+1]);
 
 		out[f].c = vp[f*3+2];
-		out[f].n = vec_add(out[f].n, vn[f*3+2]);
+		out[f].n = vec3f_add(out[f].n, vn[f*3+2]);
 
-		out[f].n = vec_norm(out[f].n);
+		out[f].n = vec3f_norm(out[f].n);
 	}
 	return out;
 }
@@ -81,9 +81,9 @@ void render_rbuff()
 
 			for(int f=0;f<RENDER_BUFFERS.mbuff[m].cnt_rtri;f++)
 			{
-				in[0] = vec_trans(RENDER_BUFFERS.mbuff[m].rtri[f].a, mv);
-				in[1] = vec_trans(RENDER_BUFFERS.mbuff[m].rtri[f].b, mv);
-				in[2] = vec_trans(RENDER_BUFFERS.mbuff[m].rtri[f].c, mv);
+				in[0] = vec3f_trans(RENDER_BUFFERS.mbuff[m].rtri[f].a, mv);
+				in[1] = vec3f_trans(RENDER_BUFFERS.mbuff[m].rtri[f].b, mv);
+				in[2] = vec3f_trans(RENDER_BUFFERS.mbuff[m].rtri[f].c, mv);
 		// FIXME: normals
 				uvin[0] = RENDER_BUFFERS.mbuff[m].rtri[f].uva;
 				uvin[1] = RENDER_BUFFERS.mbuff[m].rtri[f].uvb;
@@ -92,9 +92,9 @@ void render_rbuff()
 				triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
 				for(int i=0;i<outcnt;i++)
 				{
-					out[i*3+0] = vec_trans(out[i*3+0], CAMERA->fin);
-					out[i*3+1] = vec_trans(out[i*3+1], CAMERA->fin);
-					out[i*3+2] = vec_trans(out[i*3+2], CAMERA->fin);
+					out[i*3+0] = vec3f_trans(out[i*3+0], CAMERA->fin);
+					out[i*3+1] = vec3f_trans(out[i*3+1], CAMERA->fin);
+					out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->fin);
 
 					ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
 					bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};

@@ -3,7 +3,7 @@
 vec3f camray_model_intersect(model_raw m)
 {
 	vec3f o = CAMERA->pos;
-	vec3f dir = vec_norm(vec_sub(CAMERA->target, CAMERA->pos));
+	vec3f dir = vec3f_norm(vec3f_sub(CAMERA->target, CAMERA->pos));
 	intersection out = (intersection){0};
 	out.distance = 999999.0f;
 	for(int i=0;i<m.fcnt;i++)
@@ -49,7 +49,7 @@ int main()
 
 	CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
     CAMERA->proj = mat_identity();
-	CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
+	CAMERA->proj.m11 = -1.0f/vec3f_len(vec3f_sub(CAMERA->pos, CAMERA->target));
     CAMERA->vp = mat_viewport(RENDER_DATA.width/8, RENDER_DATA.height/8, RENDER_DATA.width*(16/9), RENDER_DATA.height*(16/9));
 
 	camera_update_mat(CAMERA);
@@ -72,22 +72,26 @@ int main()
 		if(input_key(KEY_SPACE))
 			p.impulse.z += JUMP_HEIGHT;
 
+		p.face.x = CAMERA->angle.x;
+		p.vel.z -= GRAVITY.z;
+		player_update_vel(&p);
+		player_update_muzzle(&p);
+		player_collide(&p, m);
+
 		if(input_key(KEY_R))
 		{
 			projectile bullet;
 			bullet.ttl = 100;
-			bullet.pos = p.pos;
-			bullet.vel = (vec3f){0.0f,1.0f, 0.0f};
+			bullet.pos = p.muzzle;
+			float sa = sin(p.face.x);
+			float ca = cos(p.face.x);
+			bullet.vel = (vec3f){sa,ca,0.0f};
 			bullet.m = dupe_model(sphere);
 			bullet.m->draw = 1;
 			projectile_add(bullet);
 		}
 // length to target should be same since its normalized
-//		CAMERA->proj.m11 = -1.0f/vec_len(vec_sub(CAMERA->pos, CAMERA->target));
-		p.face = CAMERA->angle.x;
-		p.vel.z -= GRAVITY.z;
-		player_vel_from_face(&p);
-		player_collide(&p, m);
+//		CAMERA->proj.m11 = -1.0f/vec3f_len(vec3f_sub(CAMERA->pos, CAMERA->target));
 
 		projectiles_tick(0);
 

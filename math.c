@@ -5,37 +5,37 @@ vec3f vec_cross(vec3f a, vec3f b)
 	vec3f out = {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};
 	return out;
 }
-float vec_dot(vec3f a, vec3f b)
+float vec3f_dot(vec3f a, vec3f b)
 {
 	return a.x*b.x+a.y*b.y+a.z*b.z;
 }
-float vec_len(vec3f a)
+float vec3f_len(vec3f a)
 {
 	return sqrtf(a.x*a.x + a.y*a.y + a.z*a.z);
 }
-float vec_len2(vec3f a)
+float vec3f_len2(vec3f a)
 {
 	return (a.x*a.x + a.y*a.y + a.z*a.z);
 }
-int vec_dot_i(vec3i a, vec3i b)
+int vec3i_dot(vec3i a, vec3i b)
 {
 	return a.x*b.x+a.y*b.y+a.z*b.z;
 }
-float vec_dist(vec3f a, vec3f b)
+float vec3f_dist(vec3f a, vec3f b)
 {
 	float dx = b.x-a.x;
 	float dy = b.y-a.y;
 	float dz = b.z-a.z;
 	return sqrtf(dx*dx + dy*dy + dz*dz);
 }
-float vec_dist2(vec3f a, vec3f b)
+float vec3f_dist2(vec3f a, vec3f b)
 {
 	float dx = b.x-a.x;
 	float dy = b.y-a.y;
 	float dz = b.z-a.z;
 	return (dx*dx + dy*dy + dz*dz);
 }
-vec3f vec_add(vec3f a, vec3f b)
+vec3f vec3f_add(vec3f a, vec3f b)
 {
 	vec3f out;
 	out.x = a.x+b.x;
@@ -43,7 +43,7 @@ vec3f vec_add(vec3f a, vec3f b)
 	out.z = a.z+b.z;
 	return out;
 }
-vec3f vec_sub(vec3f a, vec3f b)
+vec3f vec3f_sub(vec3f a, vec3f b)
 {
 	vec3f out;
 	out.x = a.x-b.x;
@@ -51,7 +51,7 @@ vec3f vec_sub(vec3f a, vec3f b)
 	out.z = a.z-b.z;
 	return out;
 }
-vec3i vec_sub_i(vec3i a, vec3i b)
+vec3i vec3i_sub(vec3i a, vec3i b)
 {
 	vec3i out;
 	out.x = a.x-b.x;
@@ -59,19 +59,19 @@ vec3i vec_sub_i(vec3i a, vec3i b)
 	out.z = a.z-b.z;
 	return out;
 }
-vec3f vec_mul(vec3f a, vec3f b)
+vec3f vec3f_mul(vec3f a, vec3f b)
 {
 	return (vec3f){a.x*b.x, a.y*b.y, a.z*b.z};
 }
-vec3f vec_mul_f(vec3f a, float f)
+vec3f vec3f_scale(vec3f a, float f)
 {
 	return (vec3f){a.x*f, a.y*f, a.z*f};
 }
-vec3f vec_div(vec3f a, vec3f b)
+vec3f vec3f_div(vec3f a, vec3f b)
 {
 	return (vec3f){a.x/b.x, a.y/b.y, a.z/b.z};
 }
-vec3f vec_norm(vec3f a)
+vec3f vec3f_norm(vec3f a)
 {
 	float l = sqrtf(a.x*a.x+a.y*a.y+a.z*a.z);
 	float il;
@@ -86,14 +86,14 @@ vec3f vec_norm(vec3f a)
 vec3f barycentric(vec3f a, vec3f b, vec3f c, vec3f p)
 {
 	vec3f out = {0};
-	vec3f v0 = vec_sub(b,a);
-	vec3f v1 = vec_sub(c,a);
-	vec3f v2 = vec_sub(p,a);
-	float d00 = vec_dot(v0,v0);
-	float d01 = vec_dot(v0,v1);
-	float d11 = vec_dot(v1,v1);
-	float d20 = vec_dot(v2,v0);
-	float d21 = vec_dot(v2,v1);
+	vec3f v0 = vec3f_sub(b,a);
+	vec3f v1 = vec3f_sub(c,a);
+	vec3f v2 = vec3f_sub(p,a);
+	float d00 = vec3f_dot(v0,v0);
+	float d01 = vec3f_dot(v0,v1);
+	float d11 = vec3f_dot(v1,v1);
+	float d20 = vec3f_dot(v2,v0);
+	float d21 = vec3f_dot(v2,v1);
 	float denominv = 1.0f/(d00*d11 - d01*d01);
 	out.x = (d11*d20 - d01*d21)*denominv;
 	out.y = (d00*d21 - d01*d20)*denominv;
@@ -103,14 +103,14 @@ vec3f barycentric(vec3f a, vec3f b, vec3f c, vec3f p)
 vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p)
 {
 	vec3f out = {0};
-	vec3i v0 = vec_sub_i(b,a);
-	vec3i v1 = vec_sub_i(c,a);
-	vec3i v2 = vec_sub_i(p,a);
-	int d00 = vec_dot_i(v0,v0);
-	int d01 = vec_dot_i(v0,v1);
-	int d11 = vec_dot_i(v1,v1);
-	int d20 = vec_dot_i(v2,v0);
-	int d21 = vec_dot_i(v2,v1);
+	vec3i v0 = vec3i_sub(b,a);
+	vec3i v1 = vec3i_sub(c,a);
+	vec3i v2 = vec3i_sub(p,a);
+	int d00 = vec3i_dot(v0,v0);
+	int d01 = vec3i_dot(v0,v1);
+	int d11 = vec3i_dot(v1,v1);
+	int d20 = vec3i_dot(v2,v0);
+	int d21 = vec3i_dot(v2,v1);
 	int denom = d00*d11 - d01*d01;
 	out.y = (float)(d11*d20 - d01*d21)/(float)denom;
 	out.z = (float)(d00*d21 - d01*d20)/(float)denom;
@@ -140,7 +140,7 @@ vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p)
 		out.y = 1.0f;
 	return out;
 }
-vec3f vec_trans(vec3f a, mat4f m)
+vec3f vec3f_trans(vec3f a, mat4f m)
 {
 	vec3f out = {0};
 	float w;
@@ -158,17 +158,17 @@ vec3f vec_trans(vec3f a, mat4f m)
 }
 vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
 {
-	vec3f v = vec_sub(p, o);
-	float dist = vec_dot(v, n);
-	return vec_sub(p, vec_mul_f(n,dist));
+	vec3f v = vec3f_sub(p, o);
+	float dist = vec3f_dot(v, n);
+	return vec3f_sub(p, vec3f_scale(n,dist));
 }
 vec3f vec_project_line(vec3f p, vec3f a, vec3f b)
 {
-	vec3f ab = vec_sub(b,a);
-	vec3f ap = vec_sub(p,a);
-	float abap = vec_dot(ab, ap);
-	float len = vec_len2(ab);
-	return vec_add(a, vec_mul_f(ab, abap/len));
+	vec3f ab = vec3f_sub(b,a);
+	vec3f ap = vec3f_sub(p,a);
+	float abap = vec3f_dot(ab, ap);
+	float len = vec3f_len2(ab);
+	return vec3f_add(a, vec3f_scale(ab, abap/len));
 }
 vec3f vec_project_segment(vec3f p, vec3f a, vec3f b)
 {
@@ -329,9 +329,9 @@ mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 {
 	mat4f out = mat_identity();
 
-	vec3f z = vec_norm(vec_sub(pos, tar));
-	vec3f x = vec_norm(vec_cross(up, z));
-	vec3f y = vec_norm(vec_cross(z,x));
+	vec3f z = vec3f_norm(vec3f_sub(pos, tar));
+	vec3f x = vec3f_norm(vec_cross(up, z));
+	vec3f y = vec3f_norm(vec_cross(z,x));
 
 	out.m0 = x.x;
 	out.m1 = y.x;

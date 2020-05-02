@@ -87,59 +87,79 @@ player player_init(vec3f p)
 	out.pos = p;
 	out.vel = (vec3f){0.0f, 0.0f, 0.0f};
 	out.impulse = (vec3f){0.0f, 0.0f, 0.0f};
-	out.face = 0.0f;
+	out.face = (vec2f){0.0f, 0.0f};
 	out.r = (vec3f){1/1.0f, 1/1.0f, 1/2.0f};
 	out.flags = FLAG_NONE;
+
+	out.muzzle_ofs = (vec3f){1.0f, 0.0f, 1.0f};
 	return out;
 }
 void player_free()
 {
 }
 
-void player_vel_from_face(player *p)
+void player_update_vel(player *p)
 {
-	float sa = sinf(p->face);
-	float ca = cosf(p->face);
+	float sa = sinf(p->face.x);
+	float ca = cosf(p->face.x);
 
 	if(p->flags & FLAG_AIR)
-		p->impulse = vec_mul_f(p->impulse, AIRCONTROL_FRAC);
+		p->impulse = vec3f_scale(p->impulse, JUMP_FRAC);
 	if(p->flags & FLAG_GND)
 	{
-		p->vel = vec_mul_f(p->vel, DRAG_FRAC);
-	p->vel.x += sa*p->impulse.x + ca*p->impulse.y;
-	p->vel.y += ca*p->impulse.x - sa*p->impulse.y;
+		p->vel = vec3f_scale(p->vel, DRAG_FRAC);
+		p->vel.x += sa*p->impulse.x + ca*p->impulse.y;
+		p->vel.y += ca*p->impulse.x - sa*p->impulse.y;
 	}
-
 	p->vel.z += p->impulse.z;
+}
+void player_update_muzzle(player *p)
+{
+	float sa = sinf(p->face.x);
+	float ca = cosf(p->face.x);
+
+	p->muzzle.x = p->pos.x + (sa*p->muzzle_ofs.x + ca*p->muzzle_ofs.y);
+	p->muzzle.y = p->pos.y + (ca*p->muzzle_ofs.x - sa*p->muzzle_ofs.y);
+	p->muzzle.z = p->pos.z + p->muzzle_ofs.z;
 }
 void player_collide(player *p, model *m)
 {
 	int try = 0;
 	int collided = 0;
+	float n_maxz = -2.0f;
 	collision col = {0};
-	col.pos = vec_mul(p->pos, p->r);
-	col.vel = vec_mul(p->vel, p->r);;
+	col.pos = vec3f_mul(p->pos, p->r);
+	col.vel = vec3f_mul(p->vel, p->r);;
+
 	while(try < 3)
 	{
 		for(int i=0;i<m->gtricnt;i++)
 		{
-			vec3f a = vec_trans(vec_mul(m->gtri[i].a, p->r),m->trans);
-			vec3f b = vec_trans(vec_mul(m->gtri[i].b, p->r),m->trans);
-			vec3f c = vec_trans(vec_mul(m->gtri[i].c, p->r),m->trans);
+// trans only for moving objects
+			vec3f a = vec3f_trans(vec3f_mul(m->gtri[i].a, p->r),m->trans);
+			vec3f b = vec3f_trans(vec3f_mul(m->gtri[i].b, p->r),m->trans);
+			vec3f c = vec3f_trans(vec3f_mul(m->gtri[i].c, p->r),m->trans);
+// FIXME: transform n
 			vec3f n = m->gtri[i].n;
-			collided += swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
-			col.pos = vec_add(col.pos, vec_mul_f(n, SMALLNR));
+			int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
+			col.pos = vec3f_add(col.pos, vec3f_scale(n, SMALLNR));
+
+			if((res > 0) && (n.z > n_maxz))
+				n_maxz = n.z;
+			collided += res;
 		}
 		if(collided == 0)
 		{
 			p->flags = FLAG_AIR;
 			break;
 		}
+		else if(n_maxz < FLOOR_Z_TRESHOLD)
+			p->flags = FLAG_AIR;
 		else
 			p->flags = FLAG_GND;
 		try++;
 	}
-	p->pos = vec_div(col.pos, p->r);
+	p->pos = vec3f_div(col.pos, p->r);
 	p->pos.z += SMALLNR;
 //	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
@@ -162,7 +182,7 @@ void projectiles_tick(int dt)
 		if(cur->ttl > 0)
 		{	
 			cur->ttl -= dt;
-			cur->pos = vec_add(cur->pos, cur->vel);
+			cur->pos = vec3f_add(cur->pos, cur->vel);
 			cur->m->trans = mat_transform(cur->pos);
 //			drawmodel_tex(cur->m, *cur->t);
 		}	
