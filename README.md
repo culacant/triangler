@@ -13,8 +13,8 @@ game engine using libc and linux API.
 
 ## TODO
 0) optimizations
-1) pathfinding and AI
-2) guns guns gun
+1) guns guns gun
+2) pathfinding and AI
 3) fix backface culling
 4) homebrew memory allocator
 
