@@ -50,8 +50,8 @@
 #define THIRD 			0.333333
 #define SMALLNR 		0.000001f
 
-#define MODEL_CNT		32
-#define TRIANGLE_CNT	10048
+#define MODEL_CNT		1024
+#define TRIANGLE_CNT	16384
 
 typedef struct vec2i vec2i;
 typedef struct vec3i vec3i;

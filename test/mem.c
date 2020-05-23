@@ -35,7 +35,7 @@ void print_hdr(block_hdr *h)
 }
 void print_mem(void *mem, unsigned int size)
 {
-	printf("printmem\n");
+	printf("\n\n");
 	block_hdr *cur = NULL;
 	void *adr = mem;
 	do
@@ -127,7 +127,6 @@ void mem_defrag(void *mem)
 {
 }
 
-
 void debug_mem(void *mem)
 {
 	block_hdr *cur = NULL;
@@ -159,7 +158,6 @@ int main()
 
 	print_mem(mem, 100);
 
-	mem_free(data3);
 	mem_free(data2);
 
 	print_mem(mem, 100);
@@ -167,4 +165,3 @@ int main()
 	free(mem);
 	return 0;
 }
-
