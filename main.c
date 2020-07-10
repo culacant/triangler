@@ -44,9 +44,9 @@ int main()
 
 //	model *m = load_model(iqe_col, iqe, &t_tiles);
 
-	model *m = load_model(iqe_floor_col, iqe_floor, &t_floor);
+	model *m = load_model(iqe_floor, iqe_floor, &t_floor);
 	m->flags = FLAG_COLLIDE | FLAG_DRAW;
-	model *m2 = load_model(iqe_wall_col, iqe_wall, &t_wall);
+	model *m2 = load_model(iqe_wall, iqe_wall, &t_wall);
 	m2->flags = FLAG_COLLIDE | FLAG_DRAW;
 
 	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
@@ -65,7 +65,7 @@ int main()
 	unload_model_raw(iqe_sphere);
 	unload_model_raw(iqe_knight);
 
-	player p = player_init((vec3f){10.0f, 10.0f, 1.0f});
+	player p = player_init((vec3f){35.0f, 0.0f, 30.0f});
 
 	camera cam = {0};
 	CAMERA = &cam;
@@ -94,10 +94,11 @@ int main()
 		camera_update_mat(CAMERA);
 
 		render_run();
-		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\nvel: %f %f %f\nflags: %i",
+		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\nvel: %f %f %f | %f\nflags: %i",
 							GAME_DATA.frametime, RENDER_DATA.frametime,
 							p.pos.x, p.pos.y, p.pos.z, 
-							p.vel.x, p.vel.y, p.vel.z,p.flags);
+							p.vel.x, p.vel.y, p.vel.z, vec3f_len(p.vel),
+							p.flags);
 		text_draw(5,5,debug_text , color_rgb(255,255,255));
 		render_flush();
 	}

@@ -21,22 +21,27 @@ void game_run(player *p , model *m, model *sphere)
 		p->face.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
 	}
 	if(input_key(KEY_W))
-		p->impulse.x += 0.002f;
+		p->impulse.x += IMPULSE;
 	if(input_key(KEY_S))
-		p->impulse.x -= 0.002f;
+		p->impulse.x -= IMPULSE;
 	if(input_key(KEY_A))
-		p->impulse.y += 0.002f;
+		p->impulse.y += IMPULSE;
 	if(input_key(KEY_D))
-		p->impulse.y -= 0.002f;
+		p->impulse.y -= IMPULSE;
 	if(input_key(KEY_SPACE))
 		p->impulse.z += JUMP_HEIGHT;
 
+	p->impulse.z += GRAVITY.z;
 	player_update_vel(p);
+	player_collide(p);
+/*
+// GRAVITY BROKEN, check normals?
+	p->impulse = GRAVITY;
+	player_update_vel(p);
+	player_collide(p);
+*/
+
 	player_update_muzzle(p);
-	player_collide(p);
-	p->vel = GRAVITY;
-	player_collide(p);
-	p->pos.z += GRAVITY.z;
 
 	if(input_key(KEY_R))
 	{
@@ -145,7 +150,7 @@ player player_init(vec3f p)
 	out.vel = (vec3f){0.0f, 0.0f, 0.0f};
 	out.impulse = (vec3f){0.0f, 0.0f, 0.0f};
 	out.face = (vec2f){0.0f, 0.0f};
-	out.r = (vec3f){1/1.0f, 1/1.0f, 1/2.0f};
+	out.r = (vec3f){1/1.4f, 1/1.4f, 1/2.0f};
 	out.flags = FLAG_NONE;
 
 	out.muzzle_ofs = (vec3f){1.0f, 0.0f, 1.0f};
@@ -159,12 +164,13 @@ void player_update_vel(player *p)
 {
 	float sa = sinf(p->face.x);
 	float ca = cosf(p->face.x);
-
+/*
 	if(p->flags & FLAG_AIR)
 		p->impulse = vec3f_scale(p->impulse, JUMP_FRAC);
+*/
+	p->vel = vec3f_scale(p->vel, DRAG_FRAC);
 	if(p->flags & FLAG_GND)
 	{
-		p->vel = vec3f_scale(p->vel, DRAG_FRAC);
 		p->vel.x += sa*p->impulse.x + ca*p->impulse.y;
 		p->vel.y += ca*p->impulse.x - sa*p->impulse.y;
 	}
@@ -206,7 +212,8 @@ void player_collide(player *p)
 		// FIXME: transform n
 					vec3f n = cur->gtri[i].n;
 					int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
-					col.pos = vec3f_add(col.pos, vec3f_scale(n, SMALLNR));
+// twitchy gravity
+//					col.pos = vec3f_add(col.pos, vec3f_scale(n, SMALLNR));
 
 					if((res > 0) && (n.z > n_maxz))
 						n_maxz = n.z;
@@ -226,7 +233,7 @@ void player_collide(player *p)
 		try++;
 	}
 	p->pos = vec3f_div(col.pos, p->r);
-//	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
+	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
 

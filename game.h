@@ -6,12 +6,13 @@
 #define PROJECTILECNT	0xff
 #define MOBCNT 			0x0f
 
-#define GRAVITY (vec3f){0.0f, 0.0f, -0.001f}
+#define IMPULSE				0.0001f
+#define GRAVITY (vec3f){0.0f, 0.0f, -0.0001f}
 #define FLOOR_Z_TRESHOLD	0.6f
 #define JUMP_FRAC 			0.1f
 #define DRAG_FRAC			0.5f
 #define JUMP_HEIGHT			0.005f
-#define ANTISTUCK_Z			0.000007f;
+#define ANTISTUCK_Z			0.000007f
 
 enum player_flags
 {
