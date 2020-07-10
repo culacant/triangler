@@ -29,14 +29,41 @@ int main()
 	projectiles_init();
 
 	char debug_text[256];
-	model_raw iqe = loadiqe("res/testlvl.iqe");
-	model_raw iqe_col = loadiqe("res/testlvl_col.iqe");
 	model_raw iqe_sphere = loadiqe("res/sphere.iqe");
+	model_raw iqe_knight = loadiqe("res/knight.iqe");
 	texture t_tiles = loadtga("res/tiles.tga");
 
-	model *m = load_model(iqe_col, iqe, &t_tiles);
+	model_raw iqe_wall = loadiqe("res/lvl/level1_wall.iqe");
+	model_raw iqe_floor = loadiqe("res/lvl/level1_floor.iqe");
+	
+	model_raw iqe_wall_col = loadiqe("res/lvl/level1_wall_col.iqe");
+	model_raw iqe_floor_col = loadiqe("res/lvl/level1_floor_col.iqe");
+
+	texture t_floor = loadtga("res/lvl/floor.tga");
+	texture t_wall = loadtga("res/lvl/wall.tga");
+
+//	model *m = load_model(iqe_col, iqe, &t_tiles);
+
+	model *m = load_model(iqe_floor_col, iqe_floor, &t_floor);
+	m->flags = FLAG_COLLIDE | FLAG_DRAW;
+	model *m2 = load_model(iqe_wall_col, iqe_wall, &t_wall);
+	m2->flags = FLAG_COLLIDE | FLAG_DRAW;
+
 	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
-	sphere->draw = 0;
+	sphere->flags = 0;
+	model *knight = load_model(iqe_knight, iqe_knight, &t_tiles);
+	knight->flags = 0;
+
+	unload_model_raw(iqe_wall);
+	unload_model_raw(iqe_floor);
+	unload_model_raw(iqe_wall_col);
+	unload_model_raw(iqe_floor_col);
+/*
+	unload_model_raw(iqe);
+	unload_model_raw(iqe_col);
+*/
+	unload_model_raw(iqe_sphere);
+	unload_model_raw(iqe_knight);
 
 	player p = player_init((vec3f){10.0f, 10.0f, 1.0f});
 
@@ -56,9 +83,9 @@ int main()
 
 	while(!input_key(KEY_Q))
 	{
+		input_flush();
 		game_run(&p, m, sphere);
 		game_flush();
-		input_flush();
 
 		CAMERA->pos = p.pos;
 		CAMERA->angle = p.face;
@@ -75,9 +102,6 @@ int main()
 		render_flush();
 	}
 	unloadtex(t_tiles);
-	unload_model_raw(iqe);
-	unload_model_raw(iqe_col);
-	unload_model_raw(iqe_sphere);
 	render_free();
 	input_free();
 	return 0;

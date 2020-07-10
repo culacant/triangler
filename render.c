@@ -74,7 +74,7 @@ void render_run()
 {
     for(int m=0;m<RENDER_DATA.modelcnt;m++)
     {
-        if(RENDER_DATA.models[m].draw)
+        if(RENDER_DATA.models[m].flags & FLAG_DRAW)
         {
             texture t = *RENDER_DATA.models[m].tex;
 
@@ -750,7 +750,7 @@ model* load_model(model_raw gmodel, model_raw rmodel, texture *t)
 {
 	model *out = malloc_model(1);
 
-	out->draw = 1;
+	out->flags = FLAG_DRAW;
 	out->rtricnt = rmodel.fcnt;
 	out->rtri = render_load_tris(rmodel);
 	out->gtricnt = gmodel.fcnt;

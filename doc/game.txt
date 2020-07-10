@@ -23,3 +23,7 @@ implement:
 
 	- projectiles
 
+sword
+axe
+flail
+spells

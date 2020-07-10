@@ -8,7 +8,6 @@
 
 enum BLOCK_HDR_FLAGS
 {
-	FLAG_USED		= 1 << 0,
 	FLAG_FREE		= 1 << 1,
 	FLAG_END		= 1 << 2,
 };
@@ -16,98 +15,160 @@ enum BLOCK_HDR_FLAGS
 typedef struct block_hdr block_hdr;
 typedef struct block_hdr
 {
+	unsigned int flags;
 	unsigned int size;
-	int flags;
 } block_hdr;
 
-char* init_mem(unsigned int size)
+void print_hdr(block_hdr *h);					//
+void print_mem(void *mem, unsigned int size);	//
+void* init_mem(unsigned int size);				//
+void* mem_alloc(unsigned int size, void *mem);	// 
+void mem_free(void *mem);						// 
+void mem_defrag(void *mem);						// UNUSED
+void debug_mem(void *mem);						// 
+
+
+void print_hdr(block_hdr *h)
 {
-	char *out = malloc(size*sizeof(char)+sizeof(block_hdr));
+	printf("%p", h);
+	printf("\t\t| ");
+	if(h->flags & FLAG_FREE)
+		printf("F");
+	else
+		printf("U");
+	if(h->flags & FLAG_END)
+		printf("E");
+	printf("\t\t| ");
+	printf("%i", h->size);
+	printf("\n");
+}
+void print_mem(void *mem, unsigned int size)
+{
+	printf("\n\n");
+	block_hdr *cur = NULL;
+	void *adr = mem;
+	do
+	{
+		cur = adr;
+		char *data = (char*)cur+sizeof(block_hdr);
+
+		print_hdr(cur);
+
+		for(int i=0;i<cur->size;i++)
+		{
+			printf("%c", data[i]);
+		}
+		printf("\n");
+
+		adr = (char*)cur+cur->size+sizeof(block_hdr);;
+	}
+	while(!(cur->flags & FLAG_END));
+}
+
+void* init_mem(unsigned int size)
+{
+	void *out = malloc(size+sizeof(block_hdr));
 
 	block_hdr *cur = (block_hdr*)out;
-	cur->size = size*sizeof(char);
 	cur->flags = FLAG_FREE | FLAG_END;
+	cur->size = size;
+
+// fill with 0xDEADBEEF
+	char *cdata = (char*)out;
+	char data[] = "DEADBEEF";
+	for(int i=sizeof(block_hdr);i<=size;i++)
+	{
+		cdata[i] = data[i&7];
+	}
 
 	return out;
 }
 
-void* mem_alloc(unsigned int size, char *mem)
+void* mem_alloc(unsigned int size, void *mem)
 {
 	block_hdr *cur = NULL;
-	block_hdr *new = (block_hdr*)mem;
+	block_hdr *new = mem;
+	void *adr;
 	do
 	{
 		cur = new;
-		if((cur->flags & FLAG_FREE) && (cur->size> size+sizeof(block_hdr) ))
+		if(cur->flags & FLAG_FREE)
 		{
-			int oldsize = cur->size;
-			int oldflags = cur->flags;
+			if(cur->size >= size+sizeof(block_hdr))
+			{
+				adr = (void*)cur+(size+sizeof(block_hdr));
 
-			cur->flags = FLAG_USED;
-			cur->size = size;
+				new = adr;
+				new->flags = cur->flags;
+				new->size = cur->size-(size+sizeof(block_hdr));
 
-			new = cur+cur->size;
-			new ->flags = oldflags;
-			new->size = oldsize-size-sizeof(block_hdr);
-			return cur;
+				cur->flags = 0;
+				cur->size = size;
+
+				adr=cur;
+				return adr+sizeof(block_hdr);
+			}
 		}
-		new = cur+cur->size;
+		adr = (void*)cur+(cur->size+sizeof(block_hdr));
+		new = adr;
 	}
 	while(!(cur->flags & FLAG_END));
+	printf("DONE\n");
 	return NULL;
 }
+void mem_free(void *mem)
+{
+	block_hdr *cur = (block_hdr *) mem-1;
+	block_hdr *next;
+	void *adr = (void*)cur;
 
-void print_mem(char *mem)
-{
-	block_hdr *cur = NULL;
-	block_hdr *new = (block_hdr*)mem;
-	do
+	cur->flags |= FLAG_FREE;
+
+	adr += cur->size+sizeof(block_hdr);
+	next = adr;
+	if(next->flags & FLAG_FREE)
 	{
-		cur = new;
-		for(int i=0;i<cur->size/10;i++)
-		{
-			if(cur->flags & FLAG_FREE)
-				printf("F");
-			else if(cur->flags & FLAG_USED)
-				printf("U");
-		}
-		printf("\n");
-		new = cur+cur->size;
+		cur->flags = next->flags;
+		cur->size += next->size+sizeof(block_hdr);
 	}
-	while(!(cur->flags & FLAG_END));
 }
-void debug_mem(char *mem)
+void mem_defrag(void *mem)
+{
+}
+
+void debug_mem(void *mem)
 {
 	block_hdr *cur = NULL;
-	block_hdr *new = (block_hdr*)mem;
+	void *adr = mem;
 	do
 	{
-		cur = new;
-		new = cur+cur->size;
+		cur = adr;
+		adr = (void*)cur+cur->size+sizeof(block_hdr);
 	}
 	while(!(cur->flags & FLAG_END));
 }
 
 int main()
 {
-	char *mem = init_mem(100);
-	debug_mem(mem);
+	int *mem = init_mem(100);
 
-	mem_alloc(10, mem);
-	debug_mem(mem);
+	char* data1 = mem_alloc(sizeof(char)*10, mem);
+	char* data2 = mem_alloc(sizeof(char)*10, mem);
+	int* data3 = mem_alloc(sizeof(int)*10, mem);
 
-	mem_alloc(20, mem);
-	debug_mem(mem);
+	for(int i=0;i<10;i++)
+		data1[i] = 'a';
+	for(int i=0;i<10;i++)
+		data2[i] = 'b';
+	for(int i=0;i<10;i++)
+		data3[i] = 'c';
 
-	mem_alloc(10, mem);
-	debug_mem(mem);
-	mem_alloc(30, mem);
-	debug_mem(mem);
+	print_mem(mem, 100);
 
-	debug_mem(mem);
-	print_mem(mem);
+	mem_free(data2);
+
+	print_mem(mem, 100);
 
 	free(mem);
 	return 0;
 }
-

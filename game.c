@@ -21,20 +21,22 @@ void game_run(player *p , model *m, model *sphere)
 		p->face.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
 	}
 	if(input_key(KEY_W))
-		p->impulse.x += 0.005f;
+		p->impulse.x += 0.002f;
 	if(input_key(KEY_S))
-		p->impulse.x -= 0.005f;
+		p->impulse.x -= 0.002f;
 	if(input_key(KEY_A))
-		p->impulse.y += 0.005f;
+		p->impulse.y += 0.002f;
 	if(input_key(KEY_D))
-		p->impulse.y -= 0.005f;
+		p->impulse.y -= 0.002f;
 	if(input_key(KEY_SPACE))
 		p->impulse.z += JUMP_HEIGHT;
 
-	p->vel.z -= GRAVITY.z;
 	player_update_vel(p);
 	player_update_muzzle(p);
-	player_collide(p, m); 
+	player_collide(p);
+	p->vel = GRAVITY;
+	player_collide(p);
+	p->pos.z += GRAVITY.z;
 
 	if(input_key(KEY_R))
 	{
@@ -46,7 +48,7 @@ void game_run(player *p , model *m, model *sphere)
 		float sy = sin(p->face.y)*10;
 		bullet.vel = (vec3f){sx,cx,sy};
 		bullet.m = dupe_model(sphere);
-		bullet.m->draw = 1;
+		bullet.m->flags = FLAG_DRAW;
 		bullet.radius = 1/0.1f;
 		projectile_add(bullet);
 	}
@@ -178,7 +180,7 @@ void player_update_muzzle(player *p)
 	p->muzzle.y = p->pos.y + (cx*p->muzzle_ofs.x - sx*p->muzzle_ofs.y);
 	p->muzzle.z = p->pos.z + sy*p->muzzle_ofs.z;
 }
-void player_collide(player *p, model *m)
+void player_collide(player *p)
 {
 	int try = 0;
 	int collided = 0;
@@ -186,23 +188,31 @@ void player_collide(player *p, model *m)
 	collision col = {0};
 	col.pos = vec3f_mul(p->pos, p->r);
 	col.vel = vec3f_mul(p->vel, p->r);;
+	model *cur;
 
 	while(try < 3)
 	{
-		for(int i=0;i<m->gtricnt;i++)
+		for(int m=0;m<GAME_DATA.modelcnt;m++)
 		{
-// trans only for moving objects
-			vec3f a = vec3f_mul(m->gtri[i].a, p->r);
-			vec3f b = vec3f_mul(m->gtri[i].b, p->r);
-			vec3f c = vec3f_mul(m->gtri[i].c, p->r);
-// FIXME: transform n
-			vec3f n = m->gtri[i].n;
-			int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
-			col.pos = vec3f_add(col.pos, vec3f_scale(n, SMALLNR));
+			cur = &GAME_DATA.models[m];
+			if(cur->flags & FLAG_COLLIDE)
+			{
+				for(int i=0;i<cur->gtricnt;i++)
+				{
+		// trans only for moving objects
+					vec3f a = vec3f_mul(cur->gtri[i].a, p->r);
+					vec3f b = vec3f_mul(cur->gtri[i].b, p->r);
+					vec3f c = vec3f_mul(cur->gtri[i].c, p->r);
+		// FIXME: transform n
+					vec3f n = cur->gtri[i].n;
+					int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
+					col.pos = vec3f_add(col.pos, vec3f_scale(n, SMALLNR));
 
-			if((res > 0) && (n.z > n_maxz))
-				n_maxz = n.z;
-			collided += res;
+					if((res > 0) && (n.z > n_maxz))
+						n_maxz = n.z;
+					collided += res;
+				}
+			}
 		}
 		if(collided == 0)
 		{
@@ -216,7 +226,6 @@ void player_collide(player *p, model *m)
 		try++;
 	}
 	p->pos = vec3f_div(col.pos, p->r);
-	p->pos.z += SMALLNR;
 //	p->vel = (vec3f){0.0f, 0.0f, 0.0f};
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
@@ -231,6 +240,22 @@ void projectiles_free()
 {
 	PROJECTILES.it = 0;
 }
+int projectile_add(projectile p)
+{
+	int cnt = 0;
+	while(cnt < PROJECTILECNT)
+	{
+		if(PROJECTILES.arr[PROJECTILES.it].ttl <= 0)
+		{
+			PROJECTILES.arr[PROJECTILES.it] = p;
+			return 1;
+		}
+		PROJECTILES.it = (PROJECTILES.it+1) & PROJECTILECNT;
+		cnt++;
+	}
+	return 0;
+}
+
 void projectiles_tick(int dt, model *m)
 {
 	projectile *cur;
@@ -245,7 +270,7 @@ void projectiles_tick(int dt, model *m)
 			if(projectile_collide(cur, m) || cur->ttl < 0)
 			{
 				cur->ttl = -1;
-				cur->m->draw = 0;
+				cur->m->flags &= ~FLAG_DRAW;
 			}
 		}	
 	}
@@ -270,17 +295,27 @@ int projectile_collide(projectile *p, model *m)
 	return COLLISION_FALSE;
 }
 
-int projectile_add(projectile p)
+void mobs_init()
+{
+	MOBS.it = 0;
+	for(int i=0;i<MOBCNT;i++)
+		MOBS.arr[i].flags = 0;
+}
+void mobs_free()
+{
+	MOBS.it = 0;
+}
+int mob_add(mob m)
 {
 	int cnt = 0;
-	while(cnt < PROJECTILECNT)
+	while(cnt < MOBCNT)
 	{
-		if(PROJECTILES.arr[PROJECTILES.it].ttl <= 0)
+		if(MOBS.arr[MOBS.it].flags == 0)
 		{
-			PROJECTILES.arr[PROJECTILES.it] = p;
+			MOBS.arr[MOBS.it] = m;
 			return 1;
 		}
-		PROJECTILES.it = (PROJECTILES.it+1) & PROJECTILECNT;
+		MOBS.it = (MOBS.it+1) & MOBCNT;
 		cnt++;
 	}
 	return 0;

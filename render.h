@@ -53,6 +53,12 @@
 #define MODEL_CNT		1024
 #define TRIANGLE_CNT	16384
 
+enum model_flags
+{
+	FLAG_DRAW		= 1<<0,
+	FLAG_COLLIDE	= 1<<1,
+};
+
 typedef struct vec2i vec2i;
 typedef struct vec3i vec3i;
 typedef struct vec3f vec3f;
@@ -175,7 +181,7 @@ typedef struct game_triangle
 } game_triangle;
 typedef struct model
 {
-    int draw;
+    unsigned int flags;
 
     int rtricnt;
     render_triangle *rtri;
@@ -283,9 +289,11 @@ void print_vec4f(vec4f v);
 
 
 // game.c functions
+/*
 void game_init();
 void game_flush();
-void game_run();
+void game_run(player *p, model *m, model *sphere);
+*/
 
 void game_frametime_update();
 
