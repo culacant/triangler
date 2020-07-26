@@ -23,7 +23,24 @@ implement:
 
 	- projectiles
 
-sword
-axe
-flail
+2h sword parry
+1h axe  AP/shield
+flail AP/stun
+pollaxe armor strip
+
 spells
+	bless weapon
+	holy water
+	consecrate area
+
+lady's favor
+tabard
+armors
+
+dmg/AP/magic
+
+str
+con
+int
+AC
+spd

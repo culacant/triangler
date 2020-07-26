@@ -4,13 +4,11 @@ void game_init()
 {
 	GAME_DATA.modelcnt = 0;
 	GAME_DATA.tricnt = 0;
-	game_frametime_update();
 }
 void game_flush()
 {
 	RENDER_DATA.modelcnt = GAME_DATA.modelcnt;
 	memcpy(RENDER_DATA.models, GAME_DATA.models, sizeof(model)*GAME_DATA.modelcnt);
-	game_frametime_update();
 }
 
 void game_run(player *p , model *m, model *sphere)
@@ -212,7 +210,7 @@ void player_collide(player *p)
 		// FIXME: transform n
 					vec3f n = cur->gtri[i].n;
 					int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
-// twitchy gravity
+// causes twitchy gravity
 //					col.pos = vec3f_add(col.pos, vec3f_scale(n, SMALLNR));
 
 					if((res > 0) && (n.z > n_maxz))

@@ -53,7 +53,6 @@ void render_init()
 
 	RENDER_DATA.modelcnt = 0;
 	RENDER_DATA.tricnt = 0;
-	render_frametime_update();
 }
 void render_free()
 {
@@ -130,10 +129,10 @@ void render_run()
 void render_flush()
 {
 	memcpy(RENDER_DATA.fb, RENDER_DATA.buf, sizeof(unsigned int)*RENDER_DATA.width*RENDER_DATA.height);
+// pretty slow; zbuf flip?
 	memset(RENDER_DATA.buf, 0, sizeof(unsigned int)*RENDER_DATA.width*RENDER_DATA.height);
 	memcpy(RENDER_DATA.zbuf, RENDER_DATA.zbufmin, sizeof(int)*RENDER_DATA.width*RENDER_DATA.height);
 
-	render_frametime_update();
 }
 void render_px(int x, int y, unsigned int color)
 {

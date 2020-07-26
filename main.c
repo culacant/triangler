@@ -81,11 +81,22 @@ int main()
 
 	camera_update_mat(CAMERA);
 
+	int rtime = 0;
+	int gtime = 0;
+
 	while(!input_key(KEY_Q))
 	{
+// game start
+		game_frametime_update();
+
 		input_flush();
 		game_run(&p, m, sphere);
 		game_flush();
+
+		game_frametime_update();
+// game end
+// render start
+		render_frametime_update();
 
 		CAMERA->pos = p.pos;
 		CAMERA->angle = p.face;
@@ -94,13 +105,22 @@ int main()
 		camera_update_mat(CAMERA);
 
 		render_run();
+//		render_flush();
+
+// debug start
 		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\nvel: %f %f %f | %f\nflags: %i",
-							GAME_DATA.frametime, RENDER_DATA.frametime,
+							gtime, rtime,
 							p.pos.x, p.pos.y, p.pos.z, 
 							p.vel.x, p.vel.y, p.vel.z, vec3f_len(p.vel),
 							p.flags);
 		text_draw(5,5,debug_text , color_rgb(255,255,255));
 		render_flush();
+		render_frametime_update();
+// render end
+
+		gtime = GAME_DATA.frametime;
+		rtime = RENDER_DATA.frametime;
+// debug end
 	}
 	unloadtex(t_tiles);
 	render_free();
