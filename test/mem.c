@@ -51,7 +51,7 @@ void print_mem(void *mem, unsigned int size)
 		}
 		printf("\n");
 
-		adr = (char*)cur+cur->size+sizeof(block_hdr);;
+		adr = (char*)cur+cur->size+sizeof(block_hdr);
 	}
 	while(!(cur->flags & FLAG_END));
 }

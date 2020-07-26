@@ -26,7 +26,6 @@ int main()
 	game_init();
 	render_init();
 	input_init();
-	projectiles_init();
 
 	char debug_text[256];
 	model_raw iqe_sphere = loadiqe("res/sphere.iqe");

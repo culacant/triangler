@@ -4,6 +4,12 @@ void game_init()
 {
 	GAME_DATA.modelcnt = 0;
 	GAME_DATA.tricnt = 0;
+	GAME_DATA.projectilecnt = 0;
+// init projectiles
+	for(int i=0;i<PROJECTILE_CNT;i++)
+	{
+		GAME_DATA.projectiles[i].ttl = -1;
+	}
 }
 void game_flush()
 {
@@ -33,7 +39,7 @@ void game_run(player *p , model *m, model *sphere)
 	player_update_vel(p);
 	player_collide(p);
 /*
-// GRAVITY BROKEN, check normals?
+// old gravity
 	p->impulse = GRAVITY;
 	player_update_vel(p);
 	player_collide(p);
@@ -235,49 +241,33 @@ void player_collide(player *p)
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
 
-void projectiles_init()
+projectile* projectile_add(projectile p)
 {
-	PROJECTILES.it = 0;
-	for(int i=0;i<PROJECTILECNT;i++)
-		PROJECTILES.arr[i].ttl = -1;
-}
-void projectiles_free()
-{
-	PROJECTILES.it = 0;
-}
-int projectile_add(projectile p)
-{
-	int cnt = 0;
-	while(cnt < PROJECTILECNT)
-	{
-		if(PROJECTILES.arr[PROJECTILES.it].ttl <= 0)
-		{
-			PROJECTILES.arr[PROJECTILES.it] = p;
-			return 1;
-		}
-		PROJECTILES.it = (PROJECTILES.it+1) & PROJECTILECNT;
-		cnt++;
-	}
-	return 0;
+	projectile *out = malloc_game_projectile(1);
+	*out = p;
+	return out;
 }
 
 void projectiles_tick(int dt, model *m)
 {
+	int cnt = 0;
 	projectile *cur;
-	for(int i=0;i<PROJECTILECNT;i++)
+	for(int i=0;i<PROJECTILE_CNT;i++)
 	{
-		cur = &PROJECTILES.arr[i];
+		cur = &GAME_DATA.projectiles[i];
 		if(cur->ttl >= 0)
-		{	
+		{
 			cur->ttl -= dt;
 			cur->pos = vec3f_add(cur->pos, cur->vel);
 			cur->m->trans = mat_transform(cur->pos);
+
 			if(projectile_collide(cur, m) || cur->ttl < 0)
-			{
-				cur->ttl = -1;
-				cur->m->flags &= ~FLAG_DRAW;
-			}
-		}	
+				free_projectile(cur);
+
+			cnt++;
+			if(cnt >= GAME_DATA.projectilecnt)
+				break;
+		}
 	}
 }
 int projectile_collide(projectile *p, model *m)
@@ -303,7 +293,7 @@ int projectile_collide(projectile *p, model *m)
 void mobs_init()
 {
 	MOBS.it = 0;
-	for(int i=0;i<MOBCNT;i++)
+	for(int i=0;i<MOB_CNT;i++)
 		MOBS.arr[i].flags = 0;
 }
 void mobs_free()
@@ -313,14 +303,14 @@ void mobs_free()
 int mob_add(mob m)
 {
 	int cnt = 0;
-	while(cnt < MOBCNT)
+	while(cnt < MOB_CNT)
 	{
 		if(MOBS.arr[MOBS.it].flags == 0)
 		{
 			MOBS.arr[MOBS.it] = m;
 			return 1;
 		}
-		MOBS.it = (MOBS.it+1) & MOBCNT;
+		MOBS.it = (MOBS.it+1) & MOB_CNT;
 		cnt++;
 	}
 	return 0;

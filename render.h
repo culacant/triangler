@@ -78,7 +78,6 @@ typedef struct model model;
 
 typedef struct input_data input_data;
 typedef struct render_data render_data;
-typedef struct game_data game_data;
 
 typedef struct vec2i
 {
@@ -224,15 +223,6 @@ typedef struct render_data
 	int tricnt;
 	render_triangle tris[TRIANGLE_CNT];
 } render_data;
-typedef struct game_data
-{
-	int frametime;
-
-	int modelcnt;
-	model models[MODEL_CNT];
-	int tricnt;
-	game_triangle tris[TRIANGLE_CNT];
-} game_data;
 
 // render.c functions
 void render_init();
@@ -363,14 +353,8 @@ int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
 int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
 int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
 
-// mem.c functions
-void* malloc_render_tri(int cnt);
-void* malloc_game_tri(int cnt);
-void* malloc_model(int cnt);
-
 input_data INPUT_DATA;
 render_data RENDER_DATA;
-game_data GAME_DATA;
 camera *CAMERA;
 
 #endif // RENDER_H

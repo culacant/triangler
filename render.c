@@ -1,5 +1,6 @@
 #include "render.h"
 #include "font.h"
+#include "mem.h"
 
 void render_init()
 {
