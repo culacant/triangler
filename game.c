@@ -15,20 +15,20 @@ void game_init()
 	GAME_DATA.tricnt = 0;
 	GAME_DATA.tris= mem_alloc(sizeof(game_triangle)*TRIANGLE_CNT, GAME_MEM);
 
-	GAME_DATA.projectilecnt = 0;
-	GAME_DATA.projectileit = 0;
-	GAME_DATA.projectiles= mem_alloc(sizeof(projectile)*PROJECTILE_CNT, GAME_MEM);
-	for(int i=0;i<PROJECTILE_CNT;i++)
+	GAME_DATA.bulletcnt = 0;
+	GAME_DATA.bulletit = 0;
+	GAME_DATA.bullets= mem_alloc(sizeof(bullet)*BULLET_CNT, GAME_MEM);
+	for(int i=0;i<BULLET_CNT;i++)
 	{
-		GAME_DATA.projectiles[i].ttl = -1;
-		GAME_DATA.projectiles[i].m = NULL;
+		GAME_DATA.bullets[i].ttl = -1;
+		GAME_DATA.bullets[i].m = NULL;
 	}
 }
 void game_free()
 {
 	mem_free(GAME_DATA.models);
 	mem_free(GAME_DATA.tris);
-	mem_free(GAME_DATA.projectiles);
+	mem_free(GAME_DATA.bullets);
 	free(GAME_MEM);
 }
 void game_flush()
@@ -69,17 +69,17 @@ void game_run(player *p , model *m, model *sphere)
 
 	if(input_key(KEY_R))
 	{
-		projectile bullet;
+		bullet bullet;
 		bullet.pos = p->muzzle;
 		float sx = sin(p->face.x)*10;
 		float cx = cos(p->face.x)*10;
 		float sy = sin(p->face.y)*10;
 		bullet.vel = (vec3f){sx,cx,sy};
 		bullet.radius = 1/0.1f;
-		projectile_add(bullet.pos, bullet.vel, bullet.radius, sphere);
+		bullet_add(bullet.pos, bullet.vel, bullet.radius, sphere);
 	}
 
-	projectiles_tick(1, m);
+	bullets_tick(1);
 
 }
 
@@ -258,9 +258,9 @@ void player_collide(player *p)
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
 
-projectile* projectile_add(vec3f pos, vec3f vel, float radius, model *m)
+bullet* bullet_add(vec3f pos, vec3f vel, float radius, model *m)
 {
-	projectile *out = malloc_game_projectile(1);
+	bullet *out = malloc_game_bullet(1);
 	if(!out)
 		return NULL;
 	
@@ -279,34 +279,36 @@ projectile* projectile_add(vec3f pos, vec3f vel, float radius, model *m)
 	return out;
 }
 
-void projectiles_tick(int dt, model *m)
+void bullets_tick(int dt)
 {
 	int cnt = 0;
-	projectile *cur;
-	for(int i=0;i<PROJECTILE_CNT;i++)
+	bullet *cur;
+	for(int i=0;i<BULLET_CNT;i++)
 	{
-		cur = &GAME_DATA.projectiles[i];
+		cur = &GAME_DATA.bullets[i];
 		if(cur->ttl >= 0)
 		{
 			cur->ttl -= dt;
 			cur->pos = vec3f_add(cur->pos, cur->vel);
 			cur->m->trans = mat_transform(cur->pos);
 			if(cur->ttl < 0)
-			{
-				free_projectile(cur);
-			}
+				free_bullet(cur);
 			else
 			{
-				if(projectile_collide(cur, m))
-					free_projectile(cur);
+				for(int m=0;m<MODEL_CNT;m++)
+				{
+					if(GAME_DATA.models[m].flags & MODEL_FLAG_COLLIDE)
+						if(bullet_collide(cur, &GAME_DATA.models[m]))
+							free_bullet(cur);
+				}
 			}
 			cnt++;
-			if(cnt >= GAME_DATA.projectilecnt)
+			if(cnt >= GAME_DATA.bulletcnt)
 				break;
 		}
 	}
 }
-int projectile_collide(projectile *p, model *m)
+int bullet_collide(bullet *p, model *m)
 {
 	collision col = {0};
 	vec3f pos = vec3f_scale(p->pos, p->radius);

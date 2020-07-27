@@ -46,13 +46,13 @@ void print_models(char *buf)
 		sprintf(buf, "%s\n",buf);
 	}
 }
-void print_projectiles(char *buf)
+void print_bullets(char *buf)
 {
-	sprintf(buf, "\nPROJECTILES\n");
-	for(int i=0;i<PROJECTILE_CNT;i++)
+	sprintf(buf, "\nBULLETS\n");
+	for(int i=0;i<BULLET_CNT;i++)
 	{
-		sprintf(buf, "%s projectile %i: ", buf, i);
-		projectile *cur = &GAME_DATA.projectiles[i];
+		sprintf(buf, "%s bullet %i: ", buf, i);
+		bullet *cur = &GAME_DATA.bullets[i];
 		sprintf(buf, "%sttl: %i model:",buf, cur->ttl);
 		if(cur->m)
 		{
@@ -170,31 +170,31 @@ void free_model(model *m)
 	m->flags = MODEL_FLAG_FREE;
 	GAME_DATA.modelcnt --;
 }
-void* malloc_game_projectile(int cnt)
+void* malloc_game_bullet(int cnt)
 {
 	int i = 0;
-	while(i < PROJECTILE_CNT)
+	while(i < BULLET_CNT)
 	{
-		if(GAME_DATA.projectiles[GAME_DATA.projectileit].ttl < 0)
+		if(GAME_DATA.bullets[GAME_DATA.bulletit].ttl < 0)
 		{
-			GAME_DATA.projectilecnt++;
-			return &GAME_DATA.projectiles[GAME_DATA.projectileit];
+			GAME_DATA.bulletcnt++;
+			return &GAME_DATA.bullets[GAME_DATA.bulletit];
 			
 		}
-		GAME_DATA.projectileit++;
-		if(GAME_DATA.projectileit >= PROJECTILE_CNT)
-			GAME_DATA.projectileit = 0;
+		GAME_DATA.bulletit++;
+		if(GAME_DATA.bulletit >= BULLET_CNT)
+			GAME_DATA.bulletit = 0;
 		i++;
 
 	}
-	printf("PROJECTILES FULL\n");
+	printf("BULLETS FULL\n");
 	return 0;
 
 }
-void free_projectile(projectile *p)
+void free_bullet(bullet *p)
 {
 	p->ttl = -1;
 	free_model(p->m);
 	p->m = NULL;
-	GAME_DATA.projectilecnt--;
+	GAME_DATA.bulletcnt--;
 }

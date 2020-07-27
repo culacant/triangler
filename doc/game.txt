@@ -21,7 +21,7 @@ implement:
 	- jumping/longer hold = higher
 	- drag (lots on collision (25% left?), little on air (75%?)
 
-	- projectiles
+	- projectiles (renamed to bullets because i keep missing c key)
 
 2h sword parry
 1h axe  AP/shield

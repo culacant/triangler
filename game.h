@@ -3,11 +3,11 @@
 
 #include "render.h"
 
-#define PROJECTILE_CNT		0x0f
+#define BULLET_CNT			0x0f
 #define MOB_CNT 			0x0f
 
 #define IMPULSE				0.0001f
-#define GRAVITY (vec3f){0.0f, 0.0f, -0.0001f}
+#define GRAVITY 			(vec3f){0.0f, 0.0f, -0.0001f}
 #define FLOOR_Z_TRESHOLD	0.6f
 #define JUMP_FRAC 			0.1f
 #define DRAG_FRAC			0.5f
@@ -24,7 +24,7 @@ enum player_flags
 typedef struct player player;
 typedef struct mob mob;
 typedef struct mobs mobs;
-typedef struct projectile projectile;
+typedef struct bullet bullet;
 
 typedef struct game_data game_data;
 
@@ -53,14 +53,14 @@ typedef struct mobs
 	int it;
 	mob arr[MOB_CNT];
 } mobs;
-typedef struct projectile
+typedef struct bullet
 {
 	int ttl;
 	vec3f pos;
 	vec3f vel;
 	float radius;
 	model *m;
-} projectile;
+} bullet;
 
 typedef struct game_data
 {
@@ -71,9 +71,9 @@ typedef struct game_data
     model *models;
     int tricnt;
     game_triangle *tris;
-	int projectilecnt;
-	int projectileit;
-	projectile *projectiles;
+	int bulletcnt;
+	int bulletit;
+	bullet *bullets;
 } game_data;
 
 void game_init();
@@ -89,10 +89,10 @@ void player_update_muzzle(player *p);
 void player_collide(player *p);
 void player_fire(player *p);
 
-projectile *projectile_add(vec3f pos, vec3f vel, float radius, model *m);
+bullet *bullet_add(vec3f pos, vec3f vel, float radius, model *m);
 
-void projectiles_tick(int dt, model *m);
-int projectile_collide(projectile *p, model *m);
+void bullets_tick(int dt);
+int bullet_collide(bullet *p, model *m);
 
 void mobs_init();
 void mobs_free();

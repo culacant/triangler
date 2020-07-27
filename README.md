@@ -18,6 +18,7 @@ game engine using libc and linux API.
 2) pathfinding and AI
 3) fix backface culling
 4) put everything into memory allocator
+5) figure out how i made call graphs
 
 ## TODO longterm
 - color palette/16-bit color

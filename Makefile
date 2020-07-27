@@ -10,3 +10,5 @@ exe:
 	$(CC) final.c -o render.exe $(CFLAGS) $(LDFLAGS)
 debug: 
 	$(CC) final.c -o render.exe $(CFLAGS_DEBUG) $(LDFLAGS)
+graph: 
+	$(CC) final.c -o render.exe -pg $(CFLAGS_DEBUG) $(LDFLAGS)
