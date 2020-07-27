@@ -213,6 +213,7 @@ typedef struct render_data
 
 	unsigned int width;
 	unsigned int height;
+// TODO: move these into RENDER_MEM
 	unsigned int *buf;
 	int *zbuf;
 	int *zbufmin;
@@ -220,9 +221,9 @@ typedef struct render_data
 	int frametime;
 
 	int modelcnt;
-	model models[MODEL_CNT];
+	model *models;
 	int tricnt;
-	render_triangle tris[TRIANGLE_CNT];
+	render_triangle *tris;
 } render_data;
 
 // render.c functions

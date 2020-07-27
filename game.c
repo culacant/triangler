@@ -24,6 +24,13 @@ void game_init()
 		GAME_DATA.projectiles[i].m = NULL;
 	}
 }
+void game_free()
+{
+	mem_free(GAME_DATA.models);
+	mem_free(GAME_DATA.tris);
+	mem_free(GAME_DATA.projectiles);
+	free(GAME_MEM);
+}
 void game_flush()
 {
 	RENDER_DATA.modelcnt = GAME_DATA.modelcnt;

@@ -1,9 +1,9 @@
 #include "mem.h"
 
 //debug
-void print_mem(void *mem, char showdata)
+void print_mem(void *mem, char showdata, char *buf)
 {
-	printf("\nMEMPRINT\n");
+	sprintf(buf, "\nMEMPRINT\n");
 	block_hdr *cur = NULL;
 	void *adr = mem;
 	do
@@ -11,22 +11,20 @@ void print_mem(void *mem, char showdata)
 		cur = adr;
 		char *data = (char*)cur+sizeof(block_hdr);
 // hdr
-		printf("%p", cur); 
-		printf("\t\t| ");
+		sprintf(buf, "%s%p  |  ", buf, cur); 
 		if(cur->flags & FLAG_FREE)
-			printf("F");
+			sprintf(buf, "%sF",buf);
 		else
-			printf("U");
+			sprintf(buf, "%sU",buf);
 		if(cur->flags & FLAG_END)
-			printf("E");
-		printf("\t\t| ");
-		printf("%i", cur->size);
-		printf("\n");
+			sprintf(buf, "%sE",buf);
+		sprintf(buf, "%s  |  %i", buf, cur->size);
+		sprintf(buf, "%s\n", buf);
 		if(showdata)
 		{
 			for(int i=0;i<cur->size;i++)
-				printf("%c", data[i]);
-			printf("\n");
+				sprintf(buf, "%s%c", buf, data[i]);
+			sprintf(buf, "%s\n",buf);
 		}
 		adr = (char*)cur+cur->size+sizeof(block_hdr);
 

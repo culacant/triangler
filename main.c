@@ -82,10 +82,6 @@ int main()
 
 	int rtime = 0;
 	int gtime = 0;
-/*
-print_mem(GAME_MEM, 0);
-return 0;
-*/
 
 	while(!input_key(KEY_Q))
 	{
@@ -117,9 +113,9 @@ return 0;
 							p.vel.x, p.vel.y, p.vel.z, vec3f_len(p.vel),
 							p.flags);
 		char models_text[1024];
-		print_models(models_text);
+		print_mem(GAME_MEM, 0, models_text);
 		strcat(debug_text, models_text);
-		print_projectiles(models_text);
+		print_mem(RENDER_MEM, 0, models_text);
 		strcat(debug_text, models_text);
 
 		text_draw(5,5,debug_text , color_rgb(255,255,255));

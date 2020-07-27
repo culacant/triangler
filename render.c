@@ -4,6 +4,7 @@
 
 void render_init()
 {
+	RENDER_MEM = mem_init(RENDER_MEM_SIZE);
 	struct fb_var_screeninfo sinfo;
 	RENDER_DATA.fd = open(FB_NAME, O_RDWR);
 	if(RENDER_DATA.fd <= 0)
@@ -53,7 +54,9 @@ void render_init()
 	memcpy(RENDER_DATA.zbuf, RENDER_DATA.zbufmin, sizeof(int)*RENDER_DATA.width*RENDER_DATA.height);
 
 	RENDER_DATA.modelcnt = 0;
+	RENDER_DATA.models = mem_alloc(sizeof(model)*MODEL_CNT, RENDER_MEM);
 	RENDER_DATA.tricnt = 0;
+	RENDER_DATA.tris = mem_alloc(sizeof(render_triangle)*TRIANGLE_CNT, RENDER_MEM);
 }
 void render_free()
 {
@@ -69,6 +72,10 @@ void render_free()
 
 	close(RENDER_DATA.tty);
 	close(RENDER_DATA.fd);
+
+	mem_free(RENDER_DATA.models);
+	mem_free(RENDER_DATA.tris);
+	free(RENDER_MEM);
 }
 void render_run()
 {

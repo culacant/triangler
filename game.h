@@ -76,6 +76,11 @@ typedef struct game_data
 	projectile *projectiles;
 } game_data;
 
+void game_init();
+void game_free();
+void game_flush();
+void game_run(player *p, model *m, model *sphere);
+
 player player_init();
 void player_free();
 
