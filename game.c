@@ -2,19 +2,32 @@
 
 void game_init()
 {
+	GAME_MEM = mem_init(GAME_MEM_SIZE);
+
 	GAME_DATA.modelcnt = 0;
+	GAME_DATA.modelit = 0;
+	GAME_DATA.models = mem_alloc(sizeof(model)*MODEL_CNT, GAME_MEM);
+	for(int i=0;i<MODEL_CNT;i++)
+	{
+		GAME_DATA.models[i].flags = MODEL_FLAG_FREE;
+	}
+
 	GAME_DATA.tricnt = 0;
+	GAME_DATA.tris= mem_alloc(sizeof(game_triangle)*TRIANGLE_CNT, GAME_MEM);
+
 	GAME_DATA.projectilecnt = 0;
-// init projectiles
+	GAME_DATA.projectileit = 0;
+	GAME_DATA.projectiles= mem_alloc(sizeof(projectile)*PROJECTILE_CNT, GAME_MEM);
 	for(int i=0;i<PROJECTILE_CNT;i++)
 	{
 		GAME_DATA.projectiles[i].ttl = -1;
+		GAME_DATA.projectiles[i].m = NULL;
 	}
 }
 void game_flush()
 {
 	RENDER_DATA.modelcnt = GAME_DATA.modelcnt;
-	memcpy(RENDER_DATA.models, GAME_DATA.models, sizeof(model)*GAME_DATA.modelcnt);
+	memcpy(RENDER_DATA.models, GAME_DATA.models, sizeof(model)*MODEL_CNT);
 }
 
 void game_run(player *p , model *m, model *sphere)
@@ -50,16 +63,13 @@ void game_run(player *p , model *m, model *sphere)
 	if(input_key(KEY_R))
 	{
 		projectile bullet;
-		bullet.ttl = 100;
 		bullet.pos = p->muzzle;
 		float sx = sin(p->face.x)*10;
 		float cx = cos(p->face.x)*10;
 		float sy = sin(p->face.y)*10;
 		bullet.vel = (vec3f){sx,cx,sy};
-		bullet.m = dupe_model(sphere);
-		bullet.m->flags = FLAG_DRAW;
 		bullet.radius = 1/0.1f;
-		projectile_add(bullet);
+		projectile_add(bullet.pos, bullet.vel, bullet.radius, sphere);
 	}
 
 	projectiles_tick(1, m);
@@ -205,7 +215,7 @@ void player_collide(player *p)
 		for(int m=0;m<GAME_DATA.modelcnt;m++)
 		{
 			cur = &GAME_DATA.models[m];
-			if(cur->flags & FLAG_COLLIDE)
+			if(cur->flags & MODEL_FLAG_COLLIDE)
 			{
 				for(int i=0;i<cur->gtricnt;i++)
 				{
@@ -241,10 +251,24 @@ void player_collide(player *p)
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
 
-projectile* projectile_add(projectile p)
+projectile* projectile_add(vec3f pos, vec3f vel, float radius, model *m)
 {
 	projectile *out = malloc_game_projectile(1);
-	*out = p;
+	if(!out)
+		return NULL;
+	
+	out->m = dupe_model(m);
+	if(!out->m)
+		return NULL;
+
+	out->ttl = 20;
+	out->pos = pos;
+	out->vel = vel;
+	out->radius = radius;
+
+	out->m->flags = MODEL_FLAG_DRAW;
+	out->m->trans= mat_transform(out->pos);;
+
 	return out;
 }
 
@@ -260,10 +284,15 @@ void projectiles_tick(int dt, model *m)
 			cur->ttl -= dt;
 			cur->pos = vec3f_add(cur->pos, cur->vel);
 			cur->m->trans = mat_transform(cur->pos);
-
-			if(projectile_collide(cur, m) || cur->ttl < 0)
+			if(cur->ttl < 0)
+			{
 				free_projectile(cur);
-
+			}
+			else
+			{
+				if(projectile_collide(cur, m))
+					free_projectile(cur);
+			}
 			cnt++;
 			if(cnt >= GAME_DATA.projectilecnt)
 				break;

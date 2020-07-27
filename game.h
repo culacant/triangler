@@ -3,7 +3,7 @@
 
 #include "render.h"
 
-#define PROJECTILE_CNT	0xff
+#define PROJECTILE_CNT		0x0f
 #define MOB_CNT 			0x0f
 
 #define IMPULSE				0.0001f
@@ -67,11 +67,13 @@ typedef struct game_data
     int frametime;
 
     int modelcnt;
-    model models[MODEL_CNT];
+    int modelit;
+    model *models;
     int tricnt;
-    game_triangle tris[TRIANGLE_CNT];
+    game_triangle *tris;
 	int projectilecnt;
-	projectile projectiles[PROJECTILE_CNT];
+	int projectileit;
+	projectile *projectiles;
 } game_data;
 
 player player_init();
@@ -82,7 +84,7 @@ void player_update_muzzle(player *p);
 void player_collide(player *p);
 void player_fire(player *p);
 
-projectile *projectile_add(projectile p);
+projectile *projectile_add(vec3f pos, vec3f vel, float radius, model *m);
 
 void projectiles_tick(int dt, model *m);
 int projectile_collide(projectile *p, model *m);

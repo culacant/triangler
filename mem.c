@@ -1,7 +1,7 @@
 #include "mem.h"
 
 //debug
-void print_mem(void *mem, unsigned int size)
+void print_mem(void *mem, char showdata)
 {
 	printf("\nMEMPRINT\n");
 	block_hdr *cur = NULL;
@@ -22,15 +22,54 @@ void print_mem(void *mem, unsigned int size)
 		printf("\t\t| ");
 		printf("%i", cur->size);
 		printf("\n");
-
-		for(int i=0;i<cur->size;i++)
-			printf("%c", data[i]);
-		printf("\n");
+		if(showdata)
+		{
+			for(int i=0;i<cur->size;i++)
+				printf("%c", data[i]);
+			printf("\n");
+		}
 		adr = (char*)cur+cur->size+sizeof(block_hdr);
 
 	} while(!(cur->flags & FLAG_END));
 }
-
+void print_models(char *buf)
+{
+	sprintf(buf, "\nMODELS\n");
+	for(int i=0;i<MODEL_CNT;i++)
+	{
+		sprintf(buf, "%s model %i: ", buf, i);
+		model *cur = &GAME_DATA.models[i];
+		if(cur->flags & MODEL_FLAG_DRAW)
+			sprintf(buf, "%sD",buf);
+		if(cur->flags & MODEL_FLAG_COLLIDE)
+			sprintf(buf, "%sC", buf);
+		if(cur->flags & MODEL_FLAG_FREE)
+			sprintf(buf, "%sF", buf);
+		sprintf(buf, "%s\n",buf);
+	}
+}
+void print_projectiles(char *buf)
+{
+	sprintf(buf, "\nPROJECTILES\n");
+	for(int i=0;i<PROJECTILE_CNT;i++)
+	{
+		sprintf(buf, "%s projectile %i: ", buf, i);
+		projectile *cur = &GAME_DATA.projectiles[i];
+		sprintf(buf, "%sttl: %i model:",buf, cur->ttl);
+		if(cur->m)
+		{
+			if(cur->m->flags & MODEL_FLAG_DRAW)
+				sprintf(buf, "%sD", buf);
+			if(cur->m->flags & MODEL_FLAG_COLLIDE)
+				sprintf(buf, "%sC", buf);
+			if(cur->m->flags & MODEL_FLAG_FREE)
+				sprintf(buf, "%sF", buf);
+		}
+		else
+				sprintf(buf, "%sNONE", buf);
+		sprintf(buf, "%s\n",buf);
+	}
+}
 //general
 void *mem_init(unsigned int size)
 {
@@ -109,20 +148,55 @@ void* malloc_game_tri(int cnt)
 }
 void* malloc_model(int cnt)
 {
-	void* addr = &GAME_DATA.models[GAME_DATA.modelcnt];
-	GAME_DATA.modelcnt += cnt;
-	return addr;
+	int i = 0;
+	while(i < MODEL_CNT)
+	{
+		if(GAME_DATA.models[GAME_DATA.modelit].flags & MODEL_FLAG_FREE)
+		{
+			GAME_DATA.models[GAME_DATA.modelit].flags = 0;
+			GAME_DATA.modelcnt++;
+			return &GAME_DATA.models[GAME_DATA.modelit];
+			
+		}
+		GAME_DATA.modelit++;
+		if(GAME_DATA.modelit >= MODEL_CNT)
+			GAME_DATA.modelit = 0;
+		i++;
+
+	}
+	printf("MODELS FULL\n");
+	return 0;
+}
+void free_model(model *m)
+{
+	m->flags = MODEL_FLAG_FREE;
+	GAME_DATA.modelcnt --;
 }
 void* malloc_game_projectile(int cnt)
 {
-	void* addr = &GAME_DATA.projectiles[GAME_DATA.projectilecnt];
-	GAME_DATA.projectilecnt+= cnt;
-	return addr;
+	int i = 0;
+	while(i < PROJECTILE_CNT)
+	{
+		if(GAME_DATA.projectiles[GAME_DATA.projectileit].ttl < 0)
+		{
+			GAME_DATA.projectilecnt++;
+			return &GAME_DATA.projectiles[GAME_DATA.projectileit];
+			
+		}
+		GAME_DATA.projectileit++;
+		if(GAME_DATA.projectileit >= PROJECTILE_CNT)
+			GAME_DATA.projectileit = 0;
+		i++;
+
+	}
+	printf("PROJECTILES FULL\n");
+	return 0;
+
 }
 void free_projectile(projectile *p)
 {
-// TODO: free projectile and model mem
 	p->ttl = -1;
-	p->m->flags &= ~FLAG_DRAW;
+	free_model(p->m);
+	p->m = NULL;
 	GAME_DATA.projectilecnt--;
 }

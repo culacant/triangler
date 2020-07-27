@@ -72,9 +72,9 @@ void render_free()
 }
 void render_run()
 {
-    for(int m=0;m<RENDER_DATA.modelcnt;m++)
+    for(int m=0;m<MODEL_CNT;m++)
     {
-        if(RENDER_DATA.models[m].flags & FLAG_DRAW)
+        if(RENDER_DATA.models[m].flags & MODEL_FLAG_DRAW)
         {
             texture t = *RENDER_DATA.models[m].tex;
 
@@ -750,7 +750,7 @@ model* load_model(model_raw gmodel, model_raw rmodel, texture *t)
 {
 	model *out = malloc_model(1);
 
-	out->flags = FLAG_DRAW;
+	out->flags = MODEL_FLAG_DRAW;
 	out->rtricnt = rmodel.fcnt;
 	out->rtri = render_load_tris(rmodel);
 	out->gtricnt = gmodel.fcnt;
@@ -763,6 +763,8 @@ model* load_model(model_raw gmodel, model_raw rmodel, texture *t)
 model* dupe_model(model *m)
 {
 	model *out = malloc_model(1);
+	if(!out)
+		return 0;
 	memcpy(out, m, sizeof(model));
 	return out;
 }

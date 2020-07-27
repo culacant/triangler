@@ -27,7 +27,7 @@ int main()
 	render_init();
 	input_init();
 
-	char debug_text[256];
+	char debug_text[2048];
 	model_raw iqe_sphere = loadiqe("res/sphere.iqe");
 	model_raw iqe_knight = loadiqe("res/knight.iqe");
 	texture t_tiles = loadtga("res/tiles.tga");
@@ -44,9 +44,9 @@ int main()
 //	model *m = load_model(iqe_col, iqe, &t_tiles);
 
 	model *m = load_model(iqe_floor, iqe_floor, &t_floor);
-	m->flags = FLAG_COLLIDE | FLAG_DRAW;
+	m->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
 	model *m2 = load_model(iqe_wall, iqe_wall, &t_wall);
-	m2->flags = FLAG_COLLIDE | FLAG_DRAW;
+	m2->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
 
 	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
 	sphere->flags = 0;
@@ -82,6 +82,10 @@ int main()
 
 	int rtime = 0;
 	int gtime = 0;
+/*
+print_mem(GAME_MEM, 0);
+return 0;
+*/
 
 	while(!input_key(KEY_Q))
 	{
@@ -112,6 +116,12 @@ int main()
 							p.pos.x, p.pos.y, p.pos.z, 
 							p.vel.x, p.vel.y, p.vel.z, vec3f_len(p.vel),
 							p.flags);
+		char models_text[1024];
+		print_models(models_text);
+		strcat(debug_text, models_text);
+		print_projectiles(models_text);
+		strcat(debug_text, models_text);
+
 		text_draw(5,5,debug_text , color_rgb(255,255,255));
 		render_flush();
 		render_frametime_update();

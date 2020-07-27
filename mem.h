@@ -18,7 +18,7 @@ typedef struct block_hdr {
 } block_hdr;
 
 // debug
-void print_mem(void *mem, unsigned int size);
+void print_mem(void *mem, char showdata);
 //general
 void* mem_init(unsigned int size);
 void* mem_alloc(unsigned int size, void *mem);
@@ -28,7 +28,11 @@ void mem_free(void *mem);
 void* malloc_render_tri(int cnt);
 void* malloc_game_tri(int cnt);
 void* malloc_model(int cnt);
+void free_model(model *m);
 void* malloc_projectile(int cnt);
 void free_projectile(projectile *p);
+
+#define GAME_MEM_SIZE 1024*1024	// 1MB
+void *GAME_MEM;
 
 #endif // MEM_H

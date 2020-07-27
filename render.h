@@ -50,13 +50,14 @@
 #define THIRD 			0.333333
 #define SMALLNR 		0.000001f
 
-#define MODEL_CNT		1024
+#define MODEL_CNT		20
 #define TRIANGLE_CNT	16384
 
 enum model_flags
 {
-	FLAG_DRAW		= 1<<0,
-	FLAG_COLLIDE	= 1<<1,
+	MODEL_FLAG_DRAW		= 1<<0,
+	MODEL_FLAG_COLLIDE	= 1<<1,
+	MODEL_FLAG_FREE		= 1<<2,
 };
 
 typedef struct vec2i vec2i;
