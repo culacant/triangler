@@ -223,7 +223,8 @@ void* malloc_game_bullet(int cnt)
 void free_game_bullet(bullet *p)
 {
 	p->ttl = -1;
-	free_model(p->m);
+	if(p->m)
+		free_model(p->m);
 	p->m = NULL;
 	GAME_DATA.bulletcnt--;
 }

@@ -72,14 +72,13 @@ void game_run(player *p , model *m, model *sphere)
 
 	if(input_key(KEY_R))
 	{
-		bullet bullet;
-		bullet.pos = p->muzzle;
+		vec3f pos = p->muzzle;
 		float sx = sin(p->face.x)*10;
 		float cx = cos(p->face.x)*10;
 		float sy = sin(p->face.y)*10;
-		bullet.vel = (vec3f){sx,cx,sy};
-		bullet.radius = 1/0.1f;
-		bullet_add(bullet.pos, bullet.vel, bullet.radius, sphere);
+		vec3f vel = (vec3f){sx,cx,sy};
+		float radius = 1/0.1f;
+		bullet_add(pos, vel, radius, sphere);
 	}
 
 	bullets_tick(1);

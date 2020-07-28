@@ -771,7 +771,7 @@ model* dupe_model(model *m)
 {
 	model *out = malloc_model(1);
 	if(!out)
-		return 0;
+		return NULL;
 	memcpy(out, m, sizeof(model));
 	return out;
 }
