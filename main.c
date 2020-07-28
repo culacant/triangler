@@ -64,7 +64,8 @@ int main()
 	unload_model_raw(iqe_sphere);
 	unload_model_raw(iqe_knight);
 
-	player p = player_init((vec3f){35.0f, 0.0f, 30.0f});
+	player p = player_init((vec3f){35.f, 0.f, 30.f});
+	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
 
 	camera cam = {0};
 	CAMERA = &cam;
@@ -116,6 +117,8 @@ int main()
 		print_mem(GAME_MEM, 0, models_text);
 		strcat(debug_text, models_text);
 		print_mem(RENDER_MEM, 0, models_text);
+		strcat(debug_text, models_text);
+		print_models(models_text);
 		strcat(debug_text, models_text);
 
 		text_draw(5,5,debug_text , color_rgb(255,255,255));

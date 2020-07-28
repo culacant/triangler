@@ -170,6 +170,35 @@ void free_model(model *m)
 	m->flags = MODEL_FLAG_FREE;
 	GAME_DATA.modelcnt --;
 }
+
+void* malloc_game_mob(int cnt)
+{
+	int i = 0;
+	while(i < MOB_CNT)
+	{
+		if(GAME_DATA.mobs[GAME_DATA.mobit].flags & MOB_FLAG_FREE)
+		{
+			GAME_DATA.mobcnt++;
+			return &GAME_DATA.mobs[GAME_DATA.mobit];
+			
+		}
+		GAME_DATA.mobit++;
+		if(GAME_DATA.mobit >= MOB_CNT)
+			GAME_DATA.mobit= 0;
+		i++;
+
+	}
+	printf("MOBS FULL\n");
+	return 0;
+
+}
+void free_game_mob(mob *p)
+{
+	p->flags = MOB_FLAG_FREE;
+	free_model(p->m);
+	p->m = NULL;
+	GAME_DATA.mobcnt--;
+}
 void* malloc_game_bullet(int cnt)
 {
 	int i = 0;
@@ -191,7 +220,7 @@ void* malloc_game_bullet(int cnt)
 	return 0;
 
 }
-void free_bullet(bullet *p)
+void free_game_bullet(bullet *p)
 {
 	p->ttl = -1;
 	free_model(p->m);

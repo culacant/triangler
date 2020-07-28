@@ -31,8 +31,11 @@ void* malloc_render_tri(int cnt);
 void* malloc_game_tri(int cnt);
 void* malloc_model(int cnt);
 void free_model(model *m);
-void* malloc_bullet(int cnt);
-void free_bullet(bullet *p);
+
+void* malloc_game_mob(int cnt);
+void free_game_mob(mob*p);
+void* malloc_game_bullet(int cnt);
+void free_game_bullet(bullet *p);
 
 #define GAME_MEM_SIZE 1024*1024	// 1MB
 #define RENDER_MEM_SIZE 1024*1024*32	// 32MB

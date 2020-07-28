@@ -20,10 +20,13 @@ enum player_flags
 	FLAG_AIR		= 1<<0,
 	FLAG_GND		= 1<<1,
 };
+enum mob_flags
+{
+	MOB_FLAG_FREE 	= 1<<0,
+};
 
 typedef struct player player;
 typedef struct mob mob;
-typedef struct mobs mobs;
 typedef struct bullet bullet;
 
 typedef struct game_data game_data;
@@ -44,15 +47,10 @@ typedef struct mob
 {
 	vec3f pos;
 	vec2f face;
-	vec3f r;
+	vec3f radius;
 	unsigned int flags;
 	model *m;
 } mob;
-typedef struct mobs
-{
-	int it;
-	mob arr[MOB_CNT];
-} mobs;
 typedef struct bullet
 {
 	int ttl;
@@ -71,6 +69,9 @@ typedef struct game_data
     model *models;
     int tricnt;
     game_triangle *tris;
+	int mobcnt;
+	int mobit;
+	mob *mobs;
 	int bulletcnt;
 	int bulletit;
 	bullet *bullets;
@@ -89,16 +90,14 @@ void player_update_muzzle(player *p);
 void player_collide(player *p);
 void player_fire(player *p);
 
-bullet *bullet_add(vec3f pos, vec3f vel, float radius, model *m);
 
+mob* mob_add(vec3f pos, vec2f face, vec3f radius, model *m);
+void mobs_tick(int dt);
+
+bullet *bullet_add(vec3f pos, vec3f vel, float radius, model *m);
 void bullets_tick(int dt);
 int bullet_collide(bullet *p, model *m);
 
-void mobs_init();
-void mobs_free();
-int mob_add(mob m);
-
-mobs MOBS;
 
 game_data GAME_DATA;
 

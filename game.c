@@ -15,6 +15,14 @@ void game_init()
 	GAME_DATA.tricnt = 0;
 	GAME_DATA.tris= mem_alloc(sizeof(game_triangle)*TRIANGLE_CNT, GAME_MEM);
 
+	GAME_DATA.mobcnt = 0;
+	GAME_DATA.mobit = 0;
+	GAME_DATA.mobs = mem_alloc(sizeof(mob)*MOB_CNT, GAME_MEM);
+	for(int i=0;i<MOB_CNT;i++)
+	{
+		GAME_DATA.mobs[i].flags = MOB_FLAG_FREE;
+	}
+
 	GAME_DATA.bulletcnt = 0;
 	GAME_DATA.bulletit = 0;
 	GAME_DATA.bullets= mem_alloc(sizeof(bullet)*BULLET_CNT, GAME_MEM);
@@ -28,6 +36,7 @@ void game_free()
 {
 	mem_free(GAME_DATA.models);
 	mem_free(GAME_DATA.tris);
+	mem_free(GAME_DATA.mobs);
 	mem_free(GAME_DATA.bullets);
 	free(GAME_MEM);
 }
@@ -58,12 +67,6 @@ void game_run(player *p , model *m, model *sphere)
 	p->impulse.z += GRAVITY.z;
 	player_update_vel(p);
 	player_collide(p);
-/*
-// old gravity
-	p->impulse = GRAVITY;
-	player_update_vel(p);
-	player_collide(p);
-*/
 
 	player_update_muzzle(p);
 
@@ -80,6 +83,7 @@ void game_run(player *p , model *m, model *sphere)
 	}
 
 	bullets_tick(1);
+	mobs_tick(1);
 
 }
 
@@ -258,27 +262,72 @@ void player_collide(player *p)
 	p->impulse = (vec3f){0.0f, 0.0f, 0.0f};
 }
 
-bullet* bullet_add(vec3f pos, vec3f vel, float radius, model *m)
-{
-	bullet *out = malloc_game_bullet(1);
-	if(!out)
-		return NULL;
-	
-	out->m = dupe_model(m);
-	if(!out->m)
+mob *mob_add(vec3f pos, vec2f face, vec3f radius, model *m)
+{	
+	model *mod = dupe_model(m);
+	if(!mod)
 		return NULL;
 
-	out->ttl = 20;
+
+	mob *out = malloc_game_tri(1);
+	if(!out)
+	{
+		free_model(mod);
+		return NULL;
+	}
+	
 	out->pos = pos;
-	out->vel = vel;
+	out->face = face;
 	out->radius = radius;
 
+	out->m = mod;
 	out->m->flags = MODEL_FLAG_DRAW;
 	out->m->trans= mat_transform(out->pos);;
 
 	return out;
 }
+void mobs_tick(int dt)
+{
+	int cnt = 0;
+	mob *cur;
+	for(int i=0;i<MOB_CNT;i++)
+	{
+		cur = &GAME_DATA.mobs[i];
+		if(!(cur->flags & MOB_FLAG_FREE))
+		{
+			cur->m->trans = mat_transform(cur->pos);
 
+			cnt++;
+			if(cnt >= GAME_DATA.mobcnt)
+				break;
+		}
+	}
+}
+
+bullet* bullet_add(vec3f pos, vec3f vel, float radius, model *m)
+{
+	model *mod = dupe_model(m);
+	if(!mod)
+		return NULL;
+
+	bullet *out = malloc_game_bullet(1);
+	if(!out)
+	{
+		free_model(mod);
+		return NULL;
+	}
+	
+	out->ttl = 20;
+	out->pos = pos;
+	out->vel = vel;
+	out->radius = radius;
+
+	out->m = mod;
+	out->m->flags = MODEL_FLAG_DRAW;
+	out->m->trans= mat_transform(out->pos);;
+
+	return out;
+}
 void bullets_tick(int dt)
 {
 	int cnt = 0;
@@ -292,14 +341,14 @@ void bullets_tick(int dt)
 			cur->pos = vec3f_add(cur->pos, cur->vel);
 			cur->m->trans = mat_transform(cur->pos);
 			if(cur->ttl < 0)
-				free_bullet(cur);
+				free_game_bullet(cur);
 			else
 			{
 				for(int m=0;m<MODEL_CNT;m++)
 				{
 					if(GAME_DATA.models[m].flags & MODEL_FLAG_COLLIDE)
 						if(bullet_collide(cur, &GAME_DATA.models[m]))
-							free_bullet(cur);
+							free_game_bullet(cur);
 				}
 			}
 			cnt++;
@@ -326,30 +375,4 @@ int bullet_collide(bullet *p, model *m)
 			return COLLISION_TRUE;
 	}
 	return COLLISION_FALSE;
-}
-
-void mobs_init()
-{
-	MOBS.it = 0;
-	for(int i=0;i<MOB_CNT;i++)
-		MOBS.arr[i].flags = 0;
-}
-void mobs_free()
-{
-	MOBS.it = 0;
-}
-int mob_add(mob m)
-{
-	int cnt = 0;
-	while(cnt < MOB_CNT)
-	{
-		if(MOBS.arr[MOBS.it].flags == 0)
-		{
-			MOBS.arr[MOBS.it] = m;
-			return 1;
-		}
-		MOBS.it = (MOBS.it+1) & MOB_CNT;
-		cnt++;
-	}
-	return 0;
 }
