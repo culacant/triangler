@@ -212,6 +212,10 @@ void player_update_muzzle(player *p)
 	p->muzzle.y = p->pos.y + (cx*p->muzzle_ofs.x - sx*p->muzzle_ofs.y);
 	p->muzzle.z = p->pos.z + sy*p->muzzle_ofs.z;
 }
+void player_collide_mobs(player *p)
+{
+// TODO: use largest radius of ellipses and slide
+}
 void player_collide_models(player *p)
 {
 	int try = 0;

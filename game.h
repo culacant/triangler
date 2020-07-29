@@ -87,6 +87,7 @@ void player_free();
 
 void player_update_vel(player *p);
 void player_update_muzzle(player *p);
+void player_collide_mobs(player *p);
 void player_collide_models(player *p);
 void player_fire(player *p);
 
