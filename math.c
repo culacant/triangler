@@ -176,6 +176,13 @@ vec3f vec_project_segment(vec3f p, vec3f a, vec3f b)
 	return vec3f_clamp(proj, a, b);
 }
 
+float vec2f_dist(vec2f a, vec2f b)
+{
+	float dx = b.x-a.x;
+	float dy = b.y-a.y;
+	return sqrtf(dx*dx + dy*dy);
+}
+
 void vec2i_swap(vec2i *a, vec2i *b)
 {
 	vec2i tmp = *a;

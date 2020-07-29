@@ -78,7 +78,9 @@ void game_run(player *p , model *m, model *sphere)
 		float sy = sin(p->face.y)*10;
 		vec3f vel = (vec3f){sx,cx,sy};
 		float radius = 1/0.1f;
-		bullet_add(pos, vel, radius, sphere);
+		bullet *b = bullet_add(pos, vel, radius, sphere);
+		if(b->m == NULL)
+			printf("WE FUCKED UP\n");
 	}
 
 	bullets_tick(1);

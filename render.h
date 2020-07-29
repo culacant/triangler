@@ -323,6 +323,8 @@ vec3f vec_project_plane(vec3f p, vec3f o, vec3f n);
 vec3f vec_project_line(vec3f p, vec3f a, vec3f b);
 vec3f vec_project_segment(vec3f p, vec3f a, vec3f b);
 
+float vec2f_dist(vec2f a, vec2f b);
+
 void vec2i_swap(vec2i *a, vec2i *b);
 void vec2f_swap(vec2f *a, vec2f *b);
 void vec3i_swap(vec3i *a, vec3i *b);

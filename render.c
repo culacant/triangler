@@ -466,6 +466,148 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 		}
 	}
 }
+// TODO: implement uv and fix z buf and clip to viewport
+void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
+{
+unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
+
+	if((a.y == b.y) && (a.y == c.y))
+		return;
+
+	if(a.x<0 && b.x<0 && c.x<0)
+		return;
+	if(a.x>=RENDER_DATA.width && b.x>=RENDER_DATA.width && c.x>=RENDER_DATA.width)
+		return;
+	if(a.y<0 && b.y<0 && c.y<0)
+		return;
+	if(a.y>=RENDER_DATA.height&& b.y>=RENDER_DATA.height&& c.y>=RENDER_DATA.height)
+		return;
+
+	if(a.y>b.y)
+	{
+		vec3i_swap(&a, &b);
+		vec2f_swap(&uva, &uvb);
+	}
+	if(a.y>c.y)
+    {   
+        vec3i_swap(&a, &c);
+        vec2f_swap(&uva, &uvc);
+    }   
+    if(b.y>c.y)
+    {   
+        vec3i_swap(&b, &c);
+        vec2f_swap(&uvb, &uvc);
+    }   
+
+	float dx1;
+	float dx2;
+	float sx1;
+	float sx2;
+
+	float dz1;
+	float dz2;
+	float sz1;
+	float sz2;
+
+	int miny;
+	int maxy;
+
+	for(int h=0;h<2;h++)
+	{
+		if(h==0)
+		{
+			miny = a.y;
+			maxy = b.y;
+
+			dx1 = (float)(a.x-b.x)/(float)(a.y-b.y);
+			dx2 = (float)(a.x-c.x)/(float)(a.y-c.y);
+			sx1 = (float)a.x;
+			sx2 = (float)a.x;
+
+			dz1 = (float)(a.z-b.z)/(float)(a.y-b.y);
+			dz2 = (float)(a.z-c.z)/(float)(a.y-c.y);
+			sz1 = (float)a.z;
+			sz2 = (float)a.z;
+		}
+		else
+		{
+			miny = b.y;
+			maxy = c.y;
+
+			dx1 = (float)(b.x-c.x)/(float)(b.y-c.y);
+			sx1 = (float)b.x;
+			sx2 -= dx2;
+
+			dz1 = (float)(b.z-c.z)/(b.y-c.y);
+			sz1 = (float)b.z;
+			sz2 -= dz2;
+		}
+
+		for(int y=miny;y<maxy;y++)
+		{   
+			if(y<0)
+			{
+				sx1 += dx1;
+				sx2 += dx2;
+				sz1 += dz1;
+				sz2 += dz2;
+				continue;
+			}
+			else if(y >= RENDER_DATA.height)
+				break;
+
+			int minx = (int)sx1;
+			int maxx = (int)sx2;
+			float minz = sz1;
+			float maxz = sz2;
+
+			if(minx>maxx)
+			{
+				int tmp = minx;
+				minx = maxx;
+				maxx = tmp;
+				float tmpf = minz;
+				minz = maxz;
+				maxz = tmpf;
+			}
+
+			float dz = (maxz-minz)/(float)(maxx-minx);
+			for(int x = minx;x<maxx;x++)
+			{
+				if(x<0)
+					continue;
+				else if(x >= RENDER_DATA.width)
+					break;
+
+				minz += dz;
+				if(render_getz(x, y) < minz)
+				{
+				// FIXME: SLOOOOOOOWWW
+					vec3f bary3 = barycentric_i(a, b, c, (vec3i){x, y, minz});
+					vec2f uv = bary2carth(uva, uvb, uvc, bary3);
+					vec2i uvi;
+
+					uv.x = wrap_one_f(uv.x);
+					uv.y = wrap_one_f(uv.y);
+
+					uvi.x = (int)(t.width*uv.x);
+					uvi.y = (int)(t.height*uv.y);
+
+					col = t.data[uvi.x+uvi.y*t.width];
+
+					render_px(x, y, col);
+					render_setz(x, y, minz);
+				}
+			}
+
+			sx1 += dx1;
+			sx2 += dx2;
+			sz1 += dz1;
+			sz2 += dz2;
+		}
+	}
+}
+/*
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
     int t_height;
@@ -602,6 +744,7 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
         }
     }
 }
+*/
 
 void rect(vec2i a, vec2i b, unsigned int color)
 {
