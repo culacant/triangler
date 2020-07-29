@@ -509,6 +509,11 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 	float sz1;
 	float sz2;
 
+	vec2f duv1;
+	vec2f duv2;
+	vec2f suv1;
+	vec2f suv2;
+
 	int miny;
 	int maxy;
 
@@ -528,6 +533,11 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			dz2 = (float)(a.z-c.z)/(float)(a.y-c.y);
 			sz1 = (float)a.z;
 			sz2 = (float)a.z;
+
+			duv1 = vec2f_div_f(vec2f_sub(uva, uvb),(float)(a.y-b.y));
+			duv2 = vec2f_div_f(vec2f_sub(uva, uvc),(float)(a.y-c.y));
+			suv1 = uva;
+			suv2 = uva;
 		}
 		else
 		{
@@ -541,6 +551,10 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			dz1 = (float)(b.z-c.z)/(b.y-c.y);
 			sz1 = (float)b.z;
 			sz2 -= dz2;
+
+			duv1 = vec2f_div_f(vec2f_sub(uvb, uvc),(float)(b.y-c.y));
+			suv1 = uvb;
+			suv2 = vec2f_sub(suv2, duv2);
 		}
 
 		for(int y=miny;y<maxy;y++)
@@ -551,6 +565,8 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 				sx2 += dx2;
 				sz1 += dz1;
 				sz2 += dz2;
+				suv1 = vec2f_add(suv1, duv1);
+				suv2 = vec2f_add(suv2, duv2);
 				continue;
 			}
 			else if(y >= RENDER_DATA.height)
@@ -560,6 +576,8 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			int maxx = (int)sx2;
 			float minz = sz1;
 			float maxz = sz2;
+			vec2f minuv = suv1;
+			vec2f maxuv = suv2;
 
 			if(minx>maxx)
 			{
@@ -569,9 +587,13 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 				float tmpf = minz;
 				minz = maxz;
 				maxz = tmpf;
+				minuv = suv2;
+				vec2f_swap(&minuv, &maxuv);
 			}
 
 			float dz = (maxz-minz)/(float)(maxx-minx);
+
+			vec2f duv = vec2f_div_f(vec2f_sub(maxuv, minuv),(float)(maxx-minx));
 			for(int x = minx;x<maxx;x++)
 			{
 				if(x<0)
@@ -580,18 +602,14 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 					break;
 
 				minz += dz;
+				minuv = vec2f_add(minuv, duv);
 				if(render_getz(x, y) < minz)
 				{
-				// FIXME: SLOOOOOOOWWW
-					vec3f bary3 = barycentric_i(a, b, c, (vec3i){x, y, minz});
-					vec2f uv = bary2carth(uva, uvb, uvc, bary3);
+// FIXME: SLOOOOOOOWWW
 					vec2i uvi;
 
-					uv.x = wrap_one_f(uv.x);
-					uv.y = wrap_one_f(uv.y);
-
-					uvi.x = (int)(t.width*uv.x);
-					uvi.y = (int)(t.height*uv.y);
+					uvi.x = (int)(t.width*minuv.x);
+					uvi.y = (int)(t.height*minuv.y);
 
 					col = t.data[uvi.x+uvi.y*t.width];
 
@@ -604,6 +622,8 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			sx2 += dx2;
 			sz1 += dz1;
 			sz2 += dz2;
+			suv1 = vec2f_add(suv1, duv1);
+			suv2 = vec2f_add(suv2, duv2);
 		}
 	}
 }

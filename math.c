@@ -182,6 +182,22 @@ float vec2f_dist(vec2f a, vec2f b)
 	float dy = b.y-a.y;
 	return sqrtf(dx*dx + dy*dy);
 }
+vec2f vec2f_sub(vec2f a, vec2f b)
+{
+	return (vec2f){a.x-b.x, a.y-b.y};
+}
+vec2f vec2f_add(vec2f a, vec2f b)
+{
+	return (vec2f){a.x+b.x, a.y+b.y};
+}
+vec2f vec2f_div(vec2f a, vec2f b)
+{
+	return (vec2f){a.x/b.x, a.y/b.y};
+}
+vec2f vec2f_div_f(vec2f a, float b)
+{
+	return (vec2f){a.x/b, a.y/b};
+}
 
 void vec2i_swap(vec2i *a, vec2i *b)
 {

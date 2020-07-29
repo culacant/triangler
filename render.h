@@ -324,6 +324,10 @@ vec3f vec_project_line(vec3f p, vec3f a, vec3f b);
 vec3f vec_project_segment(vec3f p, vec3f a, vec3f b);
 
 float vec2f_dist(vec2f a, vec2f b);
+vec2f vec2f_sub(vec2f a, vec2f b);
+vec2f vec2f_add(vec2f a, vec2f b);
+vec2f vec2f_div(vec2f a, vec2f b);
+vec2f vec2f_div_f(vec2f a, float b);
 
 void vec2i_swap(vec2i *a, vec2i *b);
 void vec2f_swap(vec2f *a, vec2f *b);

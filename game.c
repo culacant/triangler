@@ -66,7 +66,7 @@ void game_run(player *p , model *m, model *sphere)
 
 	p->impulse.z += GRAVITY.z;
 	player_update_vel(p);
-	player_collide(p);
+	player_collide_models(p);
 
 	player_update_muzzle(p);
 
@@ -212,7 +212,7 @@ void player_update_muzzle(player *p)
 	p->muzzle.y = p->pos.y + (cx*p->muzzle_ofs.x - sx*p->muzzle_ofs.y);
 	p->muzzle.z = p->pos.z + sy*p->muzzle_ofs.z;
 }
-void player_collide(player *p)
+void player_collide_models(player *p)
 {
 	int try = 0;
 	int collided = 0;
