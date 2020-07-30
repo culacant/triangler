@@ -466,7 +466,6 @@ void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
 		}
 	}
 }
-// TODO: implement uv and fix z buf and clip to viewport
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
 unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
@@ -499,15 +498,20 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
         vec2f_swap(&uvb, &uvc);
     }   
 
-	float dx1;
-	float dx2;
-	float sx1;
-	float sx2;
+	float stepxl;
+	float curxl;
+	float stepxs;
+	float curxs;
 
-	float dz1;
-	float dz2;
-	float sz1;
-	float sz2;
+	float stepzl;
+	float curzl;
+	float stepzs;
+	float curzs;
+
+	vec2f stepuvl;
+	vec2f curuvl;
+	vec2f stepuvs;
+	vec2f curuvs;
 
 
 	int miny;
@@ -520,15 +524,22 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			miny = a.y;
 			maxy = b.y;
 
-			dx1 = (float)(a.x-b.x)/(float)(a.y-b.y);
-			dx2 = (float)(a.x-c.x)/(float)(a.y-c.y);
-			sx1 = (float)a.x;
-			sx2 = (float)a.x;
+			stepxl = (float)(a.x-b.x)/(float)(a.y-b.y);
+			curxl = (float)a.x;
+			stepxs = (float)(a.x-c.x)/(float)(a.y-c.y);
+			curxs = (float)a.x;
 
-			dz1 = (float)(a.z-b.z)/(float)(a.y-b.y);
-			dz2 = (float)(a.z-c.z)/(float)(a.y-c.y);
-			sz1 = (float)a.z;
-			sz2 = (float)a.z;
+			stepzl = (float)(a.z-b.z)/(float)(a.y-b.y);
+			curzl = (float)a.z;
+			stepzs = (float)(a.z-c.z)/(float)(a.y-c.y);
+			curzs = (float)a.z;
+
+			stepuvl.x = (float)(uva.x-uvb.x)/(float)(a.y-b.y);
+			stepuvl.y = (float)(uva.y-uvb.y)/(float)(a.y-b.y);
+			curuvl = uva;
+			stepuvs.x = (float)(uva.x-uvc.x)/(float)(a.y-c.y);
+			stepuvs.y = (float)(uva.y-uvc.y)/(float)(a.y-c.y);
+			curuvs = uva;
 
 		}
 		else
@@ -536,13 +547,18 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			miny = b.y;
 			maxy = c.y;
 
-			dx1 = (float)(b.x-c.x)/(float)(b.y-c.y);
-			sx1 = (float)b.x;
-			sx2 -= dx2;
+			stepxl = (float)(b.x-c.x)/(float)(b.y-c.y);
+			curxl = (float)b.x;
+			curxs -= stepxs;
 
-			dz1 = (float)(b.z-c.z)/(b.y-c.y);
-			sz1 = (float)b.z;
-			sz2 -= dz2;
+			stepzl = (float)(b.z-c.z)/(b.y-c.y);
+			curzl = (float)b.z;
+			curzs -= stepzs;
+
+			stepuvl.x = (float)(uvb.x-uvc.x)/(float)(b.y-c.y);
+			stepuvl.y = (float)(uvb.y-uvc.y)/(float)(b.y-c.y);
+			curuvl = uvb;
+			curuvs = vec2f_sub(curuvs, stepuvs);
 
 		}
 
@@ -550,19 +566,25 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 		{   
 			if(y<0)
 			{
-				sx1 += dx1;
-				sx2 += dx2;
-				sz1 += dz1;
-				sz2 += dz2;
+				curxl += stepxl;
+				curxs += stepxs;
+
+				curzl += stepzl;
+				curzs += stepzs;
+
+				curuvl = vec2f_add(curuvl, stepuvl);
+				curuvs = vec2f_add(curuvs, stepuvs);
 				continue;
 			}
 			else if(y >= RENDER_DATA.height)
 				break;
 
-			int minx = (int)sx1;
-			int maxx = (int)sx2;
-			float minz = sz1;
-			float maxz = sz2;
+			int minx = (int)curxl;
+			int maxx = (int)curxs;
+			float minz = curzl;
+			float maxz = curzs;
+			vec2f minuv = curuvl;
+			vec2f maxuv = curuvs;
 
 			if(minx>maxx)
 			{
@@ -572,9 +594,13 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 				float tmpf = minz;
 				minz = maxz;
 				maxz = tmpf;
+				vec2f_swap(&minuv, &maxuv);
 			}
 
 			float dz = (maxz-minz)/(float)(maxx-minx);
+			vec2f duv;
+			duv.x = (maxuv.x-minuv.x)/(float)(maxx-minx);
+			duv.y = (maxuv.y-minuv.y)/(float)(maxx-minx);
 
 			for(int x = minx;x<maxx;x++)
 			{
@@ -584,162 +610,29 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 					break;
 
 				minz += dz;
+				minuv = vec2f_add(minuv, duv);
 				if(render_getz(x, y) < minz)
 				{
 // FIXME: SLOOOOOOOWWW
-
-//					col = t.data[uvi.x+uvi.y*t.width];
+					vec2i uvi;
+					uvi.x = minuv.x*t.width;
+					uvi.y = minuv.y*t.height;
+					col = t.data[uvi.x+uvi.y*t.width];
 
 					render_px(x, y, col);
 					render_setz(x, y, minz);
 				}
 			}
 
-			sx1 += dx1;
-			sx2 += dx2;
-			sz1 += dz1;
-			sz2 += dz2;
+			curxl += stepxl;
+			curxs += stepxs;
+			curzl += stepzl;
+			curzs += stepzs;
+			curuvl = vec2f_add(curuvl, stepuvl);
+			curuvs = vec2f_add(curuvs, stepuvs);
 		}
 	}
 }
-/*
-void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
-{
-    int t_height;
-    int s_height;
-    float alpha;
-    float beta;
-    float phi;
-    vec3i out1;
-    vec3i out2;
-    vec2f uvout1;
-    vec2f uvout2;
-
-    vec3i pos;
-    vec2f uvpos;
-    vec2i uvi;
-
-	int miny;
-	int maxy;
-	int minx;
-	int maxx;
-
-	int color;
-
-    if((a.y == b.y) && (a.y == c.y))
-        return;
-    if(a.y>b.y)
-    {   
-        vec3i_swap(&a, &b);
-        vec2f_swap(&uva, &uvb);
-    }   
-    if(a.y>c.y)
-    {   
-        vec3i_swap(&a, &c);
-        vec2f_swap(&uva, &uvc);
-    }   
-    if(b.y>c.y)
-    {   
-        vec3i_swap(&b, &c);
-        vec2f_swap(&uvb, &uvc);
-    }   
-
-    t_height = c.y-a.y;
-
-// upper half
-	miny = clamp_i(a.y, 0, RENDER_DATA.height-1);
-	maxy = clamp_i(b.y, 0, RENDER_DATA.height-1);
-    for(int y=miny; y <= maxy;y++)
-    {   
-        s_height = b.y-a.y+1;   
-        if(s_height == 0)
-            continue;
-        alpha = (float) (y-a.y)/t_height;
-        beta = (float) (y-a.y)/s_height;
-
-        out1 = vec3i_lerp(a,c, alpha);
-        out2 = vec3i_lerp(a,b, beta);
-        uvout1 = vec2f_lerp(uva,uvc, alpha);
-        uvout2 = vec2f_lerp(uva,uvb, alpha);
-        if(out1.x > out2.x)
-        {
-            vec3i_swap(&out1, &out2);
-            vec2f_swap(&uvout1, &uvout2);
-        }
-
-		minx = clamp_i(out1.x, 0, RENDER_DATA.width-1);
-		maxx = clamp_i(out2.x, 0, RENDER_DATA.width-1);
-        for(int j = minx; j <= maxx; j++)
-        {
-            if(minx == maxx)
-                phi = 1.0f;
-            else
-                phi = inv_lerp_i(minx, maxx, j);
-            pos = (vec3i){j, y, lerp_i(out1.z, out2.z, phi)};
-			if(render_getz(pos.x, pos.y) < pos.z)
-			{
-				uvpos = vec2f_lerp(uvout1, uvout2, phi);
-	// TODO: optimize
-				uvpos.x = wrap_one_f(uvpos.x);
-				uvpos.y = wrap_one_f(uvpos.y);
-
-				uvi.x = (int)(t.width*uvpos.x);
-				uvi.y = (int)(t.height*uvpos.y);
-
-				color = t.data[uvi.x+uvi.y*t.width];
-				render_setz(pos.x, pos.y, pos.z);
-				render_px(pos.x, pos.y, color);
-			}
-        }
-    }
-// lower half
-	miny = clamp_i(b.y, 0, RENDER_DATA.height-1);
-	maxy = clamp_i(c.y, 0, RENDER_DATA.height-1);
-    for(int y=miny; y <= maxy;y++)
-    {
-        s_height = c.y-b.y+1;
-        if(s_height == 0)
-            continue;
-        alpha = (float) (y-a.y)/t_height;
-        beta = (float) (y-b.y)/s_height;
-
-        out1 = vec3i_lerp(a,c, alpha);
-        out2 = vec3i_lerp(b,c, beta);
-        uvout1 = vec2f_lerp(uva,uvc, alpha);
-        uvout2 = vec2f_lerp(uvb,uvc, alpha);
-        if(out1.x > out2.x)
-        {
-            vec3i_swap(&out1, &out2);
-            vec2f_swap(&uvout1, &uvout2);
-        }
-
-		minx = clamp_i(out1.x, 0, RENDER_DATA.width-1);
-		maxx = clamp_i(out2.x, 0, RENDER_DATA.width-1);
-        for(int j = minx; j <= maxx; j++)
-        {
-            if(minx == maxx)
-                phi = 1.0f;
-            else
-                phi = inv_lerp_i(minx, maxx, j);
-            pos = (vec3i){j, y, lerp_i(out1.z, out2.z, phi)};
-			if(render_getz(pos.x, pos.y) < pos.z)
-			{
-				uvpos = vec2f_lerp(uvout1, uvout2, phi);
-	// TODO: optimize
-				uvpos.x = wrap_one_f(uvpos.x);
-				uvpos.y = wrap_one_f(uvpos.y);
-
-				uvi.x = (int)(t.width*uvpos.x);
-				uvi.y = (int)(t.height*uvpos.y);
-
-				color = t.data[uvi.x+uvi.y*t.width];
-				render_setz(pos.x, pos.y, pos.z);
-				render_px(pos.x, pos.y, color);
-			}
-        }
-    }
-}
-*/
 
 void rect(vec2i a, vec2i b, unsigned int color)
 {
