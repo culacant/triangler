@@ -250,7 +250,7 @@ void camera_target_from_angle(camera *cam);
 
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
-void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color);
+void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color);
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);
@@ -355,11 +355,14 @@ mat4f mat_viewport(int x, int y, int w, int h);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 mat4f mat_transform(vec3f pos);
+mat4f mat_invert(mat4f a);
+mat4f mat_transpose(mat4f a);
 
 // physics.c functions
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
 int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersection *out);
 int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n, collision *out);
+int swept_sphere_collision(vec3f pos1, vec3f vel1, float radius1, vec3f pos2, float radius2, collision *out);
 
 input_data INPUT_DATA;
 render_data RENDER_DATA;

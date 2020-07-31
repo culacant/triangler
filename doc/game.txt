@@ -23,6 +23,8 @@ implement:
 
 	- projectiles (renamed to bullets because i keep missing c key)
 
+hidden speed/stam boosts
+
 2h sword parry
 1h axe  AP/shield
 flail AP/stun

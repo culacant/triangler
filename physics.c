@@ -160,3 +160,8 @@ int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n
 	out->distance2 = vec3f_len2(vel);
 	return COLLISION_FALSE;
 }
+int swept_sphere_collision(vec3f pos1, vec3f vel1, float radius1, vec3f pos2, float radius2, collision *out)
+{
+	return 0;
+}
+

@@ -386,3 +386,65 @@ mat4f mat_transform(vec3f pos)
 				 0.0f, 0.0f, 0.0f, 1.0f};
 	return out;
 }
+mat4f mat_invert(mat4f a)
+{
+	mat4f out = {};
+    float b00 = a.m0*a.m5 - a.m1*a.m4;
+    float b01 = a.m0*a.m6 - a.m2*a.m4;
+    float b02 = a.m0*a.m7 - a.m3*a.m4;
+    float b03 = a.m1*a.m6 - a.m2*a.m5;
+    float b04 = a.m1*a.m7 - a.m3*a.m5;
+    float b05 = a.m2*a.m7 - a.m3*a.m6;
+    float b06 = a.m8*a.m13 - a.m9*a.m12;
+    float b07 = a.m8*a.m14 - a.m10*a.m12;
+    float b08 = a.m8*a.m15 - a.m11*a.m12;
+    float b09 = a.m9*a.m14 - a.m10*a.m13;
+    float b10 = a.m9*a.m15 - a.m11*a.m13;
+    float b11 = a.m10*a.m15 - a.m11*a.m14;
+
+    float invdet = 1.0f/(b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06);
+
+    out.m0 = (a.m5*b11 - a.m6*b10 + a.m7*b09)*invdet;
+    out.m1 = (-a.m1*b11 + a.m2*b10 - a.m3*b09)*invdet;
+    out.m2 = (a.m13*b05 - a.m14*b04 + a.m15*b03)*invdet;
+    out.m3 = (-a.m9*b05 + a.m10*b04 - a.m11*b03)*invdet;
+    out.m4 = (-a.m4*b11 + a.m6*b08 - a.m7*b07)*invdet;
+    out.m5 = (a.m0*b11 - a.m2*b08 + a.m3*b07)*invdet;
+    out.m6 = (-a.m12*b05 + a.m14*b02 - a.m15*b01)*invdet;
+    out.m7 = (a.m8*b05 - a.m10*b02 + a.m11*b01)*invdet;
+    out.m8 = (a.m4*b10 - a.m5*b08 + a.m7*b06)*invdet;
+    out.m9 = (-a.m0*b10 + a.m1*b08 - a.m3*b06)*invdet;
+    out.m10 = (a.m12*b04 - a.m13*b02 + a.m15*b00)*invdet;
+    out.m11 = (-a.m8*b04 + a.m9*b02 - a.m11*b00)*invdet;
+    out.m12 = (-a.m4*b09 + a.m5*b07 - a.m6*b06)*invdet;
+    out.m13 = (a.m0*b09 - a.m1*b07 + a.m2*b06)*invdet;
+    out.m14 = (-a.m12*b03 + a.m13*b01 - a.m14*b00)*invdet;
+    out.m15 = (a.m8*b03 - a.m9*b01 + a.m10*b00)*invdet;
+
+    return out;
+}
+
+mat4f mat_transpose(mat4f a)
+{
+    mat4f out = {0};
+
+    out.m0 = a.m0;
+    out.m1 = a.m4;
+    out.m2 = a.m8;
+    out.m3 = a.m12;
+    out.m4 = a.m1;
+    out.m5 = a.m5;
+    out.m6 = a.m9;
+    out.m7 = a.m13;
+    out.m8 = a.m2;
+    out.m9 = a.m6;
+    out.m10 = a.m10;
+    out.m11 = a.m14;
+    out.m12 = a.m3;
+    out.m13 = a.m7;
+    out.m14 = a.m11;
+    out.m15 = a.m15;
+
+    return out;
+}
+

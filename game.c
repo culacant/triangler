@@ -79,8 +79,11 @@ void game_run(player *p , model *m, model *sphere)
 		vec3f vel = (vec3f){sx,cx,sy};
 		float radius = 1/0.1f;
 		bullet *b = bullet_add(pos, vel, radius, sphere);
-		if(b->m == NULL)
-			printf("WE FUCKED UP\n");
+		if(b)
+		{
+			if(b->m == NULL)
+				printf("WE FUCKED UP\n");
+		}
 	}
 
 	bullets_tick(1);
@@ -228,7 +231,7 @@ void player_collide_models(player *p)
 
 	while(try < 3)
 	{
-		for(int m=0;m<GAME_DATA.modelcnt;m++)
+		for(int m=0;m<MODEL_CNT;m++)
 		{
 			cur = &GAME_DATA.models[m];
 			if(cur->flags & MODEL_FLAG_COLLIDE)
@@ -236,9 +239,12 @@ void player_collide_models(player *p)
 				for(int i=0;i<cur->gtricnt;i++)
 				{
 		// trans only for moving objects
-					vec3f a = vec3f_mul(cur->gtri[i].a, p->r);
-					vec3f b = vec3f_mul(cur->gtri[i].b, p->r);
-					vec3f c = vec3f_mul(cur->gtri[i].c, p->r);
+					vec3f a = vec3f_trans(cur->gtri[i].a, cur->trans);
+					vec3f b = vec3f_trans(cur->gtri[i].b, cur->trans);
+					vec3f c = vec3f_trans(cur->gtri[i].c, cur->trans);
+					a = vec3f_mul(a, p->r);
+					b = vec3f_mul(b, p->r);
+					c = vec3f_mul(c, p->r);
 		// FIXME: transform n
 					vec3f n = cur->gtri[i].n;
 					int res = swept_tri_collision(col.pos, col.vel, a, b, c, n, &col);
