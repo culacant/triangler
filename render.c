@@ -118,6 +118,7 @@ void render_run()
                     out[i*3+1] = vec3f_trans(out[i*3+1], CAMERA->fin);
                     out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->fin);
 
+
                     ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
                     bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
                     ci = (vec3i){out[i*3+2].x, out[i*3+2].y, out[i*3+2].z};
@@ -126,8 +127,13 @@ void render_run()
                     uvb = uvout[i*2+1];
                     uvc = uvout[i*2+2];
 
-                    triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
-
+					if(((ai.y == bi.y) && (ai.y == ci.y)) 	||
+					   (ai.x<0 && bi.x<0 && ci.x<0)			||
+					   (ai.y<0 && bi.y<0 && ci.y<0) 		||
+					   (ai.x>=RENDER_DATA.width && bi.x>=RENDER_DATA.width && ci.x>=RENDER_DATA.width) ||
+					   (ai.y>=RENDER_DATA.height&& bi.y>=RENDER_DATA.height&& ci.y>=RENDER_DATA.height))
+						continue;
+					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
                 }
             }
 
@@ -381,107 +387,115 @@ void line_dot(vec2i a, vec2i b, unsigned int color)
 		}
 	}
 }
-void triangle_color(vec3f a, vec3f b, vec3f c, unsigned int color)
+void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 {
-	vec3f bary;
-	float zfac;
-	int t_height;
-	int s_height;
-	float alpha;
-	float beta;
-	vec2i out1;
-	vec2i out2;
-
 	if(a.y>b.y)
-		vec3f_swap(&a, &b);
+		vec3i_swap(&a, &b);
 	if(a.y>c.y)
-		vec3f_swap(&a, &c);
-	if(b.y>c.y)
-		vec3f_swap(&b, &c);
+        vec3i_swap(&a, &c);
+    if(b.y>c.y)
+		vec3i_swap(&b, &c);
 
-	t_height = c.y-a.y;
-	if(t_height <= 0)
-		return;
+	float stepxl;
+	float curxl;
+	float stepxs;
+	float curxs;
 
-	s_height = b.y-a.y+1;
-	if(s_height != 0)
+	float stepzl;
+	float curzl;
+	float stepzs;
+	float curzs;
+
+	int miny;
+	int maxy;
+
+	for(int h=0;h<2;h++)
 	{
-		for(int y=a.y;y<=b.y;y++)
+		if(h==0)
 		{
-			alpha = (float)(y-a.y)/t_height;
-			beta = (float)(y-a.y)/s_height;
-			out1.x = a.x+(c.x-a.x)*alpha;
-			out1.y = a.y+(c.y-a.y)*alpha;
-			out2.x = a.x+(b.x-a.x)*beta;
-			out2.y = a.y+(b.y-a.y)*beta;
+			miny = a.y;
+			maxy = b.y;
 
-			if(out1.x>out2.x)
-				vec2i_swap(&out1, &out2);
+			stepxl = (float)(a.x-b.x)/(float)(a.y-b.y);
+			curxl = (float)a.x;
+			stepxs = (float)(a.x-c.x)/(float)(a.y-c.y);
+			curxs = (float)a.x;
 
-			for(int j=out1.x;j<=out2.x;j++)
-			{
-				bary = barycentric(a,b,c,(vec3f){j,y,0.0f});
-				zfac = 0;
-				zfac += bary.x*a.z;
-				zfac += bary.y*b.z;
-				zfac += bary.z*c.z;
-// fix: zfac float => int	
-				if(zfac < render_getz_safe(j,y))
-				{
-					render_setz_safe(j,y,zfac);
-					render_px_safe(j,y,color);
-				}
-			}
+			stepzl = (float)(a.z-b.z)/(float)(a.y-b.y);
+			curzl = (float)a.z;
+			stepzs = (float)(a.z-c.z)/(float)(a.y-c.y);
+			curzs = (float)a.z;
 		}
-	}
-	s_height = c.y-b.y+1;
-	if(s_height != 0)
-	{
-		for(int y=b.y;y<=c.y;y++)
+		else
 		{
-			alpha = (float)(y-a.y)/t_height;
-			beta = (float)(y-b.y)/s_height;
-			out1.x = a.x+(c.x-a.x)*alpha;
-			out1.y = a.y+(c.y-a.y)*alpha;
-			out2.x = b.x+(c.x-b.x)*beta;
-			out2.y = b.y+(c.y-b.y)*beta;
-			if(out1.x>out2.x)
-				vec2i_swap(&out1, &out2);
-				 
-			for(int j=out1.x;j<=out2.x;j++)
+			miny = b.y;
+			maxy = c.y;
+
+			stepxl = (float)(b.x-c.x)/(float)(b.y-c.y);
+			curxl = (float)b.x;
+			curxs -= stepxs;
+
+			stepzl = (float)(b.z-c.z)/(b.y-c.y);
+			curzl = (float)b.z;
+			curzs -= stepzs;
+		}
+
+		for(int y=miny;y<maxy;y++)
+		{   
+			if(y<0)
 			{
-				bary = barycentric(a,b,c,(vec3f){j,y,0.0f});
-				zfac = 0;
-				zfac += bary.x*a.z;
-				zfac += bary.y*b.z;
-				zfac += bary.z*c.z;
-				
-// fix: zfac float => int	
-				if(zfac < render_getz_safe(j,y))
+				curxl += stepxl;
+				curxs += stepxs;
+
+				curzl += stepzl;
+				curzs += stepzs;
+
+				continue;
+			}
+			else if(y >= RENDER_DATA.height)
+				break;
+
+			int minx = (int)curxl;
+			int maxx = (int)curxs;
+			float minz = curzl;
+			float maxz = curzs;
+
+			if(minx>maxx)
+			{
+				int tmp = minx;
+				minx = maxx;
+				maxx = tmp;
+				float tmpf = minz;
+				minz = maxz;
+				maxz = tmpf;
+			}
+
+			float dz = (maxz-minz)/(float)(maxx-minx);
+
+			for(int x = minx;x<maxx;x++)
+			{
+				if(x<0)
+					continue;
+				else if(x >= RENDER_DATA.width)
+					break;
+
+				minz += dz;
+				if(render_getz(x, y) < minz)
 				{
-					render_setz_safe(j,y,zfac);
-					render_px_safe(j,y,color);
+					render_px(x, y, color);
+					render_setz(x, y, minz);
 				}
 			}
+
+			curxl += stepxl;
+			curxs += stepxs;
+			curzl += stepzl;
+			curzs += stepzs;
 		}
 	}
 }
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
-unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
-
-	if((a.y == b.y) && (a.y == c.y))
-		return;
-
-	if(a.x<0 && b.x<0 && c.x<0)
-		return;
-	if(a.x>=RENDER_DATA.width && b.x>=RENDER_DATA.width && c.x>=RENDER_DATA.width)
-		return;
-	if(a.y<0 && b.y<0 && c.y<0)
-		return;
-	if(a.y>=RENDER_DATA.height&& b.y>=RENDER_DATA.height&& c.y>=RENDER_DATA.height)
-		return;
-
 	if(a.y>b.y)
 	{
 		vec3i_swap(&a, &b);
@@ -558,8 +572,6 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 			stepuvl.x = (float)(uvb.x-uvc.x)/(float)(b.y-c.y);
 			stepuvl.y = (float)(uvb.y-uvc.y)/(float)(b.y-c.y);
 			curuvl = uvb;
-			curuvs = vec2f_sub(curuvs, stepuvs);
-
 		}
 
 		for(int y=miny;y<maxy;y++)
@@ -613,13 +625,12 @@ unsigned int col = color_rgb(rand()%255, rand()%255, rand()%255);
 				minuv = vec2f_add(minuv, duv);
 				if(render_getz(x, y) < minz)
 				{
-// FIXME: SLOOOOOOOWWW
 					vec2i uvi;
 					uvi.x = minuv.x*t.width;
 					uvi.y = minuv.y*t.height;
-					col = t.data[uvi.x+uvi.y*t.width];
+					unsigned int color = t.data[uvi.x+uvi.y*t.width];
 
-					render_px(x, y, col);
+					render_px(x, y, color);
 					render_setz(x, y, minz);
 				}
 			}
