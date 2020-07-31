@@ -9,3 +9,6 @@ https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorith
 http://realtimecollisiondetection.net/blog/?p=103
 http://www.peroxide.dk/papers/collision/collision.pdf
 https://github.com/jrouwe/SweptEllipsoid/blob/master/Source/SweptEllipsoid.cpp
+
+https://github.com/OneLoneCoder/videos/blob/master/OneLoneCoder_olcEngine3D_Part3.cpp
+https://www.youtube.com/watch?v=XgMWc6LumG4&list=PLrOv9FMX8xJE8NgepZR1etrsU63fDDGxO&index=24&t=0s

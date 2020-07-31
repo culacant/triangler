@@ -41,13 +41,13 @@ int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 	e1 = vec3f_sub(b, a);
 	e2 = vec3f_sub(c, a);
 
-	p = vec_cross(dir, e2);
+	p = vec3f_cross(dir, e2);
 	det = vec3f_dot(e1, p);
 
 	t = vec3f_sub(o, a);
 	det_inv = 1.0f/det;
 
-	q = vec_cross(t, e1);
+	q = vec3f_cross(t, e1);
 
 	if(det > SMALLNR)
 	{
@@ -74,7 +74,7 @@ int ray_tri_intersect(vec3f o, vec3f dir, vec3f a, vec3f b, vec3f c, intersectio
 
 	out->distance = vec3f_dot(e2, q) * det_inv;
 	out->pos = vec3f_add(o, vec3f_scale(dir, out->distance));
-	out->normal = vec3f_norm(vec_cross(e1, e2));
+	out->normal = vec3f_norm(vec3f_cross(e1, e2));
 
 	return 1;
 }
@@ -96,10 +96,10 @@ int swept_tri_collision(vec3f pos, vec3f vel, vec3f a, vec3f b, vec3f c, vec3f n
 	vec3f b2 = vec3f_sub(b, pv);
 	vec3f c2 = vec3f_sub(c, pv);
 
-	v1 = vec_cross(vec3f_sub(b1, a1), vec3f_sub(c1, a1));
+	v1 = vec3f_cross(vec3f_sub(b1, a1), vec3f_sub(c1, a1));
 	d1 = vec3f_dot(a1, v1);
 
-	v2 = vec_cross(vec3f_sub(b2, a2), vec3f_sub(c2, a2));
+	v2 = vec3f_cross(vec3f_sub(b2, a2), vec3f_sub(c2, a2));
 	d2 = vec3f_dot(a2, v2);
 	e2 = vec3f_dot(v2, v2);
 

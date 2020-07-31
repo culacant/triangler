@@ -1,6 +1,6 @@
 #include "render.h"
 
-vec3f vec_cross(vec3f a, vec3f b)
+vec3f vec3f_cross(vec3f a, vec3f b)
 {
 	vec3f out = {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};
 	return out;
@@ -353,8 +353,8 @@ mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 	mat4f out = mat_identity();
 
 	vec3f z = vec3f_norm(vec3f_sub(pos, tar));
-	vec3f x = vec3f_norm(vec_cross(up, z));
-	vec3f y = vec3f_norm(vec_cross(z,x));
+	vec3f x = vec3f_norm(vec3f_cross(up, z));
+	vec3f y = vec3f_norm(vec3f_cross(z,x));
 
 	out.m0 = x.x;
 	out.m1 = y.x;
