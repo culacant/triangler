@@ -35,6 +35,11 @@
 #define RSHIFT 			16
 #define ASHIFT 			24
 
+#define BMASK			0x0000FF
+#define GMASK			0x00FF00
+#define RMASK			0xFF0000
+#define AMASK			0x000000FF
+
 #define DEPTH 			1024
 #define ZBUF_MIN		INT_MIN
 
@@ -250,7 +255,7 @@ void camera_target_from_angle(camera *cam);
 
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
-void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int c1, unsigned int c2, unsigned int c3);
+void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc);
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);
@@ -271,7 +276,7 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout);
 
-unsigned int color_rgb(unsigned int r, unsigned int g, unsigned int b); 
+unsigned int color_rgb(unsigned char r, unsigned char g, unsigned char b); 
 unsigned int brighten(unsigned int c, float b);
 
 void print_mat(mat4f m);
