@@ -250,7 +250,7 @@ void camera_target_from_angle(camera *cam);
 
 void line(vec2i a, vec2i b, unsigned int color);
 void line_dot(vec2i a, vec2i b, unsigned int color);
-void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color);
+void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int c1, unsigned int c2, unsigned int c3);
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t);
 
 void rect(vec2i a, vec2i size, unsigned int color);
@@ -308,6 +308,7 @@ int vec3i_dot(vec3i a, vec3i b);
 float vec3f_dist(vec3f a, vec3f b);
 float vec3f_dist2(vec3f a, vec3f b);
 vec3f vec3f_add(vec3f a, vec3f b);
+vec3i vec3i_add(vec3i a, vec3i b);
 vec3f vec3f_sub(vec3f a, vec3f b);
 vec3i vec3i_sub(vec3i a, vec3i b);
 vec3f vec3f_mul(vec3f a, vec3f b);

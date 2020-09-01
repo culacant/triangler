@@ -133,7 +133,8 @@ void render_run()
 					   (ai.x>=RENDER_DATA.width && bi.x>=RENDER_DATA.width && ci.x>=RENDER_DATA.width) ||
 					   (ai.y>=RENDER_DATA.height&& bi.y>=RENDER_DATA.height&& ci.y>=RENDER_DATA.height))
 						continue;
-					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
+//					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
+					triangle_color(ai,bi,ci,color_rgb(255,0,0), color_rgb(0,255,0), color_rgb(0,0,255));
                 }
             }
 
@@ -387,7 +388,7 @@ void line_dot(vec2i a, vec2i b, unsigned int color)
 		}
 	}
 }
-void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
+void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int c1, unsigned int c2, unsigned int c3)
 {
 	if(a.y>b.y)
 		vec3i_swap(&a, &b);
@@ -405,6 +406,11 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 	float curzl;
 	float stepzs;
 	float curzs;
+
+	vec3i stepcl;
+	vec3i curcl;
+	vec3i stepcs;
+	vec3i curcs;
 
 	int miny;
 	int maxy;
@@ -425,6 +431,15 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 			curzl = (float)a.z;
 			stepzs = (float)(a.z-c.z)/(float)(a.y-c.y);
 			curzs = (float)a.z;
+
+			stepcl.x = (float)((c1&0x0000FF)-(c2&0x0000FF))/(float)(a.y-b.y);
+			stepcl.y = (float)((c1&0x00FF00)-(c2&0x00FF00))/(float)(a.y-b.y);
+			stepcl.z = (float)((c1&0xFF0000)-(c2&0xFF0000))/(float)(a.y-b.y);
+			curcl = (vec3i){c1&0xFF, c1&0xFF00, c1&0xFF0000};
+			stepcs.x = (float)((c1&0x0000FF)-(c3&0x0000FF))/(float)(a.y-c.y);
+			stepcs.y = (float)((c1&0x00FF00)-(c3&0x00FF00))/(float)(a.y-c.y);
+			stepcs.z = (float)((c1&0xFF0000)-(c3&0xFF0000))/(float)(a.y-c.y);
+			curcs = (vec3i){c1&0xFF, c1&0xFF00, c1&0xFF0000};
 		}
 		else
 		{
@@ -438,6 +453,11 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 			stepzl = (float)(b.z-c.z)/(b.y-c.y);
 			curzl = (float)b.z;
 			curzs -= stepzs;
+
+			stepcl.x = (float)((c2&0x0000FF)-(c3&0x0000FF))/(float)(b.y-c.y);
+			stepcl.y = (float)((c2&0x00FF00)-(c3&0x00FF00))/(float)(b.y-c.y);
+			stepcl.z = (float)((c2&0xFF0000)-(c3&0xFF0000))/(float)(b.y-c.y);
+			curcl = (vec3i){c2&0xFF, c2&0xFF00, c2&0xFF0000};
 		}
 
 		for(int y=miny;y<maxy;y++)
@@ -450,6 +470,9 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 				curzl += stepzl;
 				curzs += stepzs;
 
+				curcl = vec3i_add(curcl, stepcl);
+				curcs = vec3i_add(curcs, stepcs);
+
 				continue;
 			}
 			else if(y >= RENDER_DATA.height)
@@ -460,6 +483,9 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 			float minz = curzl;
 			float maxz = curzs;
 
+			vec3i minc = curcl;
+			vec3i maxc = curcs;
+
 			if(minx>maxx)
 			{
 				int tmp = minx;
@@ -468,9 +494,14 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 				float tmpf = minz;
 				minz = maxz;
 				maxz = tmpf;
+				vec3i_swap(&minc, &maxc);
 			}
 
 			float dz = (maxz-minz)/(float)(maxx-minx);
+			vec3i dc;
+			dc.x = (maxc.x-minc.x)/(float)(maxx-minx);
+			dc.y = (maxc.y-minc.y)/(float)(maxx-minx);
+			dc.z = (maxc.z-minc.z)/(float)(maxx-minx);
 
 			for(int x = minx;x<maxx;x++)
 			{
@@ -480,9 +511,10 @@ void triangle_color(vec3i a, vec3i b, vec3i c, unsigned int color)
 					break;
 
 				minz += dz;
+				minc = vec3i_add(minc, dc);
 				if(render_getz(x, y) < minz)
 				{
-					render_px(x, y, color);
+					render_px(x, y, color_rgb(minc.x, minc.y, minc.z));
 					render_setz(x, y, minz);
 				}
 			}

@@ -43,6 +43,14 @@ vec3f vec3f_add(vec3f a, vec3f b)
 	out.z = a.z+b.z;
 	return out;
 }
+vec3i vec3i_add(vec3i a, vec3i b)
+{
+	vec3i out;
+	out.x = a.x+b.x;
+	out.y = a.y+b.y;
+	out.z = a.z+b.z;
+	return out;
+}
 vec3f vec3f_sub(vec3f a, vec3f b)
 {
 	vec3f out;
