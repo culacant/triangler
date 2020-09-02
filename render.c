@@ -134,7 +134,7 @@ void render_run()
 					   (ai.y>=RENDER_DATA.height&& bi.y>=RENDER_DATA.height&& ci.y>=RENDER_DATA.height))
 						continue;
 //					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
-					triangle_color(ai,bi,ci,(vec3f){1.f, 0.f, 0.f},(vec3f){0.f, 1.f, 0.f},(vec3f){0.f, 0.f, 1.f});
+					triangle_color(ai,bi,ci,(vec3f){255.f, 0.f, 0.f},(vec3f){0.f, 255.f, 0.f},(vec3f){0.f, 0.f, 255.f});
                 }
             }
 
@@ -527,7 +527,7 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 
 				if(render_getz(x, y) < minz)
 				{
-					unsigned int col = color_rgb(255*minc.x, 255*minc.y, 255*minc.z);
+					unsigned int col = color_rgb(minc.x, minc.y, minc.z);
 					render_px(x, y, col);
 					render_setz(x, y, minz);
 				}
@@ -727,13 +727,18 @@ model_raw loadiqe(const char *filename)
 	out.vp = malloc(sizeof(vec3f)*out.vcnt);
 	out.vt = malloc(sizeof(vec2f)*out.vcnt);
 	out.vn = malloc(sizeof(vec3f)*out.vcnt);
+	out.vc = malloc(sizeof(vec3f)*out.vcnt);
 	out.fm = malloc(sizeof(int)*out.fcnt*3);
 	out.fn = malloc(sizeof(vec3f)*out.fcnt);
 	rewind(fp);
+// color initial
+	for(int i=0;i<out.vcnt;i++)
+		out.vc[i] = (vec3f){-1.f, -1.f, -1.f};
 // second pass
 	int vpcnt = 0;
 	int vtcnt = 0;
 	int vncnt = 0;
+	int vccnt = 0;
 	int fmcnt = 0;
 	vec3f invec;
 	int inint[3];
@@ -754,6 +759,11 @@ model_raw loadiqe(const char *filename)
 		{
 			out.vn[vncnt] = invec;
 			vncnt++;
+		}
+		else if(sscanf(line," vc %f %f %f", &invec.x, &invec.y, &invec.z) == 3)
+		{
+			out.vc[vccnt] = invec;
+			vccnt++;
 		}
 		else if(sscanf(line," fm %i %i %i", &inint[0], &inint[1], &inint[2]) == 3)
 		{
@@ -793,6 +803,7 @@ void unload_model_raw(model_raw m)
 	free(m.vp);
 	free(m.vt);
 	free(m.vn);
+	free(m.vc);
 	free(m.fm);
 	free(m.fn);
 }
@@ -807,16 +818,19 @@ render_triangle* render_load_tris(model_raw m)
 		out[f].a = m.vp[fi];
 		out[f].uva = m.vt[fi];
 		out[f].n = m.vn[fi];
+		out[f].cola = m.vc[fi];
 
 		fi = m.fm[f*3+1];
 		out[f].b = m.vp[fi];
 		out[f].uvb = m.vt[fi];
 		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
+		out[f].colb = m.vc[fi];
 
 		fi = m.fm[f*3+2];
 		out[f].c = m.vp[fi];
 		out[f].uvc = m.vt[fi];
 		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
+		out[f].colc = m.vc[fi];
 
 		out[f].n = vec3f_norm(out[f].n);
 	}

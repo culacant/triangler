@@ -55,7 +55,7 @@
 #define THIRD 			0.333333
 #define SMALLNR 		0.000001f
 
-#define MODEL_CNT		20
+#define MODEL_CNT		64
 #define TRIANGLE_CNT	16384
 
 enum model_flags
@@ -127,6 +127,7 @@ typedef struct model_raw
 	vec3f *vp;
 	vec2f *vt;
 	vec3f *vn;
+	vec3f *vc;
 	int fcnt;
 	int *fm;
 	vec3f *fn;
@@ -175,6 +176,10 @@ typedef struct render_triangle
     vec2f uva;
     vec2f uvb;
     vec2f uvc;
+
+	vec3f cola;
+	vec3f colb;
+	vec3f colc;
 
 } render_triangle;
 typedef struct game_triangle
