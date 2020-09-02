@@ -99,7 +99,8 @@ void render_run()
             vec2f uvb;
             vec2f uvc;
 
-            mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->mv);
+//            mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->view);
+            mat4f mv = CAMERA->view;
 
             for(int f=0;f<RENDER_DATA.models[m].rtricnt;f++)
             {
@@ -114,10 +115,24 @@ void render_run()
                 triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
                 for(int i=0;i<outcnt;i++)
                 {
-                    out[i*3+0] = vec3f_trans(out[i*3+0], CAMERA->fin);
-                    out[i*3+1] = vec3f_trans(out[i*3+1], CAMERA->fin);
-                    out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->fin);
+                    out[i*3+0] = vec3f_trans(out[i*3+0], CAMERA->proj);
+                    out[i*3+1] = vec3f_trans(out[i*3+1], CAMERA->proj);
+                    out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->proj);
 
+					vec3f ofs = (vec3f){1,1,0};
+					vec3f scale = (vec3f){0.5f*RENDER_DATA.width,0.5f*RENDER_DATA.height,1};
+
+					out[i*3+0] = vec3f_scale(out[i*3+0],-1.f);
+					out[i*3+0] = vec3f_add(out[i*3+0], ofs);
+					out[i*3+0] = vec3f_mul(out[i*3+0], scale);
+
+					out[i*3+1] = vec3f_scale(out[i*3+1],-1.f);
+					out[i*3+1] = vec3f_add(out[i*3+1], ofs);
+					out[i*3+1] = vec3f_mul(out[i*3+1], scale);
+
+					out[i*3+2] = vec3f_scale(out[i*3+2],-1.f);
+					out[i*3+2] = vec3f_add(out[i*3+2], ofs);
+					out[i*3+2] = vec3f_mul(out[i*3+2], scale);
 
                     ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
                     bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
@@ -260,11 +275,6 @@ void text_draw(int x, int y, const char *text, unsigned int color)
 	}
 }
 
-void camera_update_mat(camera *cam)
-{
-// clip space = mv
-	cam->fin = mat_mul(cam->proj, cam->vp);
-}
 void camera_angle_from_target(camera *cam)
 {
 /*
@@ -281,9 +291,13 @@ void camera_angle_from_target(camera *cam)
 }
 void camera_target_from_angle(camera *cam)
 {
+/*
+	mat4f rot = mat_rotation((vec3f){cam->angle.x, cam->angle.y, 0.f});
+	cam->target = vec3f_trans((vec3f){0.f, 0.f, 1.f}, rot);
+*/
 	cam->target.x = sinf(cam->angle.x);
 	cam->target.y = cosf(cam->angle.x);
-	cam->target.z = sinf(cam->angle.y);
+	cam->target.z = cosf(cam->angle.y);
 
 	cam->target = vec3f_add(cam->target, cam->pos);
 
@@ -943,20 +957,20 @@ void drawtex(texture t)
 
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 {
-	if(posin[0].z >= CLIP_NEAR && posin[1].z >= CLIP_NEAR && posin[2].z >= CLIP_NEAR)
+	if(posin[0].z <= CLIP_NEAR && posin[1].z <= CLIP_NEAR && posin[2].z <= CLIP_NEAR)
 	{
 		*cntout = 0;
 		return;
 	}
-	else if(posin[0].z >= CLIP_NEAR)
+	else if(posin[0].z <= CLIP_NEAR)
 	{
-		if(posin[1].z >= CLIP_NEAR)
+		if(posin[1].z <= CLIP_NEAR)
 		{
 			*cntout = 1;
 			triangle_clip_double(posin[2], posin[0], posin[1], uvin[2], uvin[0], uvin[1], posout, uvout);
 			return;
 		}
-		else if(posin[2].z >= CLIP_NEAR)
+		else if(posin[2].z <= CLIP_NEAR)
 		{
 			*cntout = 1;
 			triangle_clip_double(posin[1], posin[0], posin[2], uvin[1], uvin[0], uvin[2], posout, uvout);
@@ -969,9 +983,9 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 			return;
 		}
 	}
-	else if(posin[1].z >= CLIP_NEAR)
+	else if(posin[1].z <= CLIP_NEAR)
 	{
-		if(posin[2].z >= CLIP_NEAR)
+		if(posin[2].z <= CLIP_NEAR)
 		{
 			*cntout = 1;
 			triangle_clip_double(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);
@@ -984,7 +998,7 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 			return;
 		}
 	}
-	else if(posin[2].z >= CLIP_NEAR)
+	else if(posin[2].z <= CLIP_NEAR)
 	{
 		*cntout = 2;
 		triangle_clip_single(posin[0], posin[1], posin[2], uvin[0], uvin[1], uvin[2], posout, uvout);

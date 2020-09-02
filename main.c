@@ -28,9 +28,15 @@ int main()
 	input_init();
 
 	char debug_text[2048];
+	model_raw iqe_tri = loadiqe("res/tri.iqe");
+	texture t_tiles = loadtga("res/tiles.tga");
+	model *tri = load_model(iqe_tri, iqe_tri, &t_tiles);
+	tri->flags = MODEL_FLAG_DRAW;
+	unload_model_raw(iqe_tri);
+
 	model_raw iqe_sphere = loadiqe("res/sphere.iqe");
 	model_raw iqe_knight = loadiqe("res/knight.iqe");
-	texture t_tiles = loadtga("res/tiles.tga");
+//	texture t_tiles = loadtga("res/tiles.tga");
 
 	model_raw iqe_wall = loadiqe("res/lvl/level1_wall.iqe");
 	model_raw iqe_floor = loadiqe("res/lvl/level1_floor.iqe");
@@ -44,8 +50,10 @@ int main()
 //	model *m = load_model(iqe_col, iqe, &t_tiles);
 
 	model *m = load_model(iqe_floor, iqe_floor, &t_floor);
+	m->flags = MODEL_FLAG_COLLIDE;
 	m->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
 	model *m2 = load_model(iqe_wall, iqe_wall, &t_wall);
+	m2->flags = MODEL_FLAG_COLLIDE;
 	m2->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
 
 	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
@@ -64,22 +72,19 @@ int main()
 	unload_model_raw(iqe_sphere);
 	unload_model_raw(iqe_knight);
 
-	player p = player_init((vec3f){35.f, 0.f, 30.f});
-	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
+//	player p = player_init((vec3f){35.f, 0.f, 30.f});
+	player p = player_init((vec3f){0.f, 0.f, 0.f});
+//	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
 
 	camera cam = {0};
 	CAMERA = &cam;
 	CAMERA->pos = (vec3f){-7.0f,15.0f,9.0f};
 	CAMERA->angle = (vec2f){0.0f,0.0f};
 	camera_target_from_angle(CAMERA);
-	CAMERA->up = (vec3f){0.0f,0.0f,-1.0f};
+	CAMERA->up = (vec3f){0.0f,1.0f,0.0f};
 
-	CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
-    CAMERA->proj = mat_identity();
-	CAMERA->proj.m11 = -1.0f/vec3f_len(vec3f_sub(CAMERA->pos, CAMERA->target));
-    CAMERA->vp = mat_viewport(RENDER_DATA.width/8, RENDER_DATA.height/8, RENDER_DATA.width*(16/9), RENDER_DATA.height*(16/9));
-
-	camera_update_mat(CAMERA);
+	CAMERA->proj = mat_project(90.f*(PI/180.f), 9.f/16.f, CLIP_NEAR, 1000.f);
+	CAMERA->view = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
 
 	int rtime = 0;
 	int gtime = 0;
@@ -101,17 +106,17 @@ int main()
 		CAMERA->pos = p.pos;
 		CAMERA->angle = p.face;
 		camera_target_from_angle(CAMERA);
-		CAMERA->mv = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
-		camera_update_mat(CAMERA);
+		CAMERA->up = (vec3f){0.f, 0.f, 1.f};
+		CAMERA->view = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);
 
 		render_run();
 //		render_flush();
 
 // debug start
-		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\nvel: %f %f %f | %f\nflags: %i",
+		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\ntar: %f %f %f\nflags: %i",
 							gtime, rtime,
 							p.pos.x, p.pos.y, p.pos.z, 
-							p.vel.x, p.vel.y, p.vel.z, vec3f_len(p.vel),
+							CAMERA->target.x, CAMERA->target.y, CAMERA->target.z, 
 							p.flags);
 		char models_text[1024];
 		print_mem(GAME_MEM, 0, models_text);

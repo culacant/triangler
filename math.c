@@ -320,16 +320,15 @@ mat4f mat_identity()
 				 0.0f, 0.0f, 0.0f, 1.0f};
 	return out;
 }
-mat4f mat_viewport(int x, int y, int w, int h)
+mat4f mat_project(float fov, float aspect, float near, float far)
 {
-	mat4f out = mat_identity();
-	out.m12 = x+w/2.0f;
-	out.m13 = y+h/2.0f;
-	out.m14 = DEPTH;
-
-	out.m0 = w/2.0f;
-	out.m5 = h/2.0f;
-	out.m10 = DEPTH;
+	float fovitan = 1.f/tanf(fov*0.5f);
+	mat4f out = {0};
+	out.m0 = aspect*fovitan;
+	out.m5 = fovitan;
+	out.m10 = far/(far-near);
+	out.m11 = 1.f;
+	out.m14 = (-far*near)/(far-near);
 	return out;
 }
 mat4f mat_mul(mat4f a, mat4f b)
@@ -358,31 +357,34 @@ mat4f mat_mul(mat4f a, mat4f b)
 }
 mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 {
-	mat4f out = mat_identity();
+	mat4f out = {0};
 
-	vec3f z = vec3f_norm(vec3f_sub(pos, tar));
-	vec3f x = vec3f_norm(vec3f_cross(up, z));
-	vec3f y = vec3f_norm(vec3f_cross(z,x));
+	vec3f fwd = vec3f_norm(vec3f_sub(tar, pos));
+	vec3f newup = vec3f_norm(vec3f_sub(up, vec3f_scale(fwd, vec3f_dot(up,fwd))));
+	vec3f right = vec3f_cross(newup, fwd);
+// a fwd
+// b right
+// c up
 
-	out.m0 = x.x;
-	out.m1 = y.x;
-	out.m2 = z.x;
-	out.m3 = 0.0f;
+	out.m0 = right.x;
+	out.m4 = right.y;
+	out.m8 = right.z;
+	out.m12 = -vec3f_dot(pos,right);
 
-	out.m4 = x.y;
-	out.m5 = y.y;
-	out.m6 = z.y;
-	out.m7 = 0.0f;
+	out.m1 = newup.x;
+	out.m5 = newup.y;
+	out.m9 = newup.z;
+	out.m13 = -vec3f_dot(pos,newup);
 
-	out.m8 = x.z;
-	out.m9 = y.z;
-	out.m10 = z.z;
-	out.m11 = 0.0f;
+	out.m2  = fwd.x;
+	out.m6  = fwd.y;
+	out.m10 = fwd.z;
+	out.m14 = -vec3f_dot(pos,fwd);
 
-	out.m12 = -tar.x*x.x + -tar.y*x.y + -tar.z*x.z;
-	out.m13 = -tar.x*y.x + -tar.y*y.y + -tar.z*y.z;
-	out.m14 = -tar.x*z.x + -tar.y*z.y + -tar.z*z.z;
-	out.m15 = 1.0f;
+	out.m3 = 0.f;
+	out.m7 = 0.f;
+	out.m11 = 0.f;
+	out.m15 = 1.f;
 
 	return out;
 }
@@ -454,5 +456,30 @@ mat4f mat_transpose(mat4f a)
     out.m15 = a.m15;
 
     return out;
+}
+mat4f mat_rotation(vec3f a)
+{
+	mat4f out = {0};
+    out.m0 = cosf(a.z)*cosf(a.y);
+    out.m1 = sinf(a.z)*cosf(a.y);
+    out.m2 = -sinf(a.y);
+    out.m3 = 0.f;
+
+    out.m4 = cosf(a.z)*sinf(a.y)*sinf(a.x)-sinf(a.z)*cosf(a.x);
+    out.m5 = sinf(a.z)*sinf(a.y)*sinf(a.x)-cosf(a.z)*cosf(a.x);
+    out.m6 = cosf(a.y)*sinf(a.x);
+    out.m7 = 0.f;
+
+    out.m8  = cosf(a.z)*sinf(a.y)*cosf(a.x)+sinf(a.z)*sinf(a.x);
+    out.m9 	= sinf(a.z)*sinf(a.y)*cosf(a.x)-cosf(a.z)*sinf(a.x);
+    out.m10 = cosf(a.y)*cosf(a.x);
+    out.m11 = 0.f;
+	
+    out.m12 = 0.f;
+    out.m13 = 0.f;
+    out.m14 = 0.f;
+    out.m15 = 1.f;
+
+	return out;
 }
 

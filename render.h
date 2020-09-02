@@ -45,7 +45,7 @@
 
 #define CLIP_POINT_IN 	3
 #define CLIP_POINT_OUT 	6
-#define CLIP_NEAR		-0.1f
+#define CLIP_NEAR		0.1f
 
 #define PI 				3.14159265358979323846
 
@@ -160,10 +160,8 @@ typedef struct camera
 	vec3f target;
 	vec3f up;
 
-	mat4f mv;
+	mat4f view;
 	mat4f proj;
-	mat4f vp;
-	mat4f fin;
 } camera;
 
 typedef struct render_triangle
@@ -254,7 +252,6 @@ void render_frametime_update();
 
 void text_draw(int x, int y, const char *text, unsigned int color);
 
-void camera_update_mat(camera *cam);
 void camera_angle_from_target(camera *cam);
 void camera_target_from_angle(camera *cam);
 
@@ -361,13 +358,15 @@ float clamp_f(float a, float min, float max);
 int clamp_i(int a, int min, int max);
 float wrap_one_f(float a);
 
+
 mat4f mat_identity();
-mat4f mat_viewport(int x, int y, int w, int h);
+mat4f mat_project(float fov, float aspect, float near, float far);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 mat4f mat_transform(vec3f pos);
 mat4f mat_invert(mat4f a);
 mat4f mat_transpose(mat4f a);
+mat4f mat_rotation(vec3f angles);
 
 // physics.c functions
 int point_in_tri(vec3f p, vec3f a, vec3f b, vec3f c);
