@@ -72,8 +72,7 @@ int main()
 	unload_model_raw(iqe_sphere);
 	unload_model_raw(iqe_knight);
 
-//	player p = player_init((vec3f){35.f, 0.f, 30.f});
-	player p = player_init((vec3f){0.f, 0.f, 0.f});
+	player p = player_init((vec3f){35.f, 0.f, 30.f});
 //	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
 
 	camera cam = {0};

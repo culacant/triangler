@@ -291,16 +291,11 @@ void camera_angle_from_target(camera *cam)
 }
 void camera_target_from_angle(camera *cam)
 {
-/*
-	mat4f rot = mat_rotation((vec3f){cam->angle.x, cam->angle.y, 0.f});
-	cam->target = vec3f_trans((vec3f){0.f, 0.f, 1.f}, rot);
-*/
 	cam->target.x = sinf(cam->angle.x);
 	cam->target.y = cosf(cam->angle.x);
 	cam->target.z = cosf(cam->angle.y);
 
 	cam->target = vec3f_add(cam->target, cam->pos);
-
 }
 
 void line(vec2i a, vec2i b, unsigned int color)

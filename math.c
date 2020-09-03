@@ -361,15 +361,13 @@ mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 
 	vec3f fwd = vec3f_norm(vec3f_sub(tar, pos));
 	vec3f newup = vec3f_norm(vec3f_sub(up, vec3f_scale(fwd, vec3f_dot(up,fwd))));
+// right is inverted because i fucked up and cba to fix everything
 	vec3f right = vec3f_cross(newup, fwd);
-// a fwd
-// b right
-// c up
 
-	out.m0 = right.x;
-	out.m4 = right.y;
-	out.m8 = right.z;
-	out.m12 = -vec3f_dot(pos,right);
+	out.m0 = -right.x;
+	out.m4 = -right.y;
+	out.m8 = -right.z;
+	out.m12 = vec3f_dot(pos,right);
 
 	out.m1 = newup.x;
 	out.m5 = newup.y;
@@ -459,25 +457,32 @@ mat4f mat_transpose(mat4f a)
 }
 mat4f mat_rotation(vec3f a)
 {
+	float cosx = cosf(-a.x);
+	float sinx = cosf(-a.x);
+	float cosy = cosf(-a.y);
+	float siny = cosf(-a.y);
+	float cosz = cosf(-a.z);
+	float sinz = cosf(-a.z);
+
 	mat4f out = {0};
-    out.m0 = cosf(a.z)*cosf(a.y);
-    out.m1 = sinf(a.z)*cosf(a.y);
-    out.m2 = -sinf(a.y);
-    out.m3 = 0.f;
-
-    out.m4 = cosf(a.z)*sinf(a.y)*sinf(a.x)-sinf(a.z)*cosf(a.x);
-    out.m5 = sinf(a.z)*sinf(a.y)*sinf(a.x)-cosf(a.z)*cosf(a.x);
-    out.m6 = cosf(a.y)*sinf(a.x);
-    out.m7 = 0.f;
-
-    out.m8  = cosf(a.z)*sinf(a.y)*cosf(a.x)+sinf(a.z)*sinf(a.x);
-    out.m9 	= sinf(a.z)*sinf(a.y)*cosf(a.x)-cosf(a.z)*sinf(a.x);
-    out.m10 = cosf(a.y)*cosf(a.x);
-    out.m11 = 0.f;
-	
+    out.m0 = cosz*cosy;
+    out.m4 = (cosz*siny*sinx)-(sinz*cosx);
+    out.m8 = (cosz*siny*cosx)+(sinz*sinx);
     out.m12 = 0.f;
+
+    out.m1 = sinz*cosy;
+    out.m5 = (sinz*siny*sinx)+(cosz*cosx);
+    out.m9 = (sinz*siny*cosx)-(cosz*sinx);
     out.m13 = 0.f;
+
+    out.m2  = -siny;
+    out.m6 	= cosy*sinx;
+    out.m10 = cosy*cosx;
     out.m14 = 0.f;
+	
+    out.m3 = 0.f;
+    out.m7 = 0.f;
+    out.m11 = 0.f;
     out.m15 = 1.f;
 
 	return out;
