@@ -112,11 +112,12 @@ int main()
 //		render_flush();
 
 // debug start
-		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\ntar: %f %f %f\nflags: %i",
+		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\ntar: %f %f %f\nflags: %i\nzbuf: %i",
 							gtime, rtime,
 							p.pos.x, p.pos.y, p.pos.z, 
 							CAMERA->target.x, CAMERA->target.y, CAMERA->target.z, 
-							p.flags);
+							p.flags, RENDER_DATA.zbuf[540*RENDER_DATA.width+960]);
+		render_px(960, 540, color_rgb(255,0,255));
 		char models_text[1024];
 		print_mem(GAME_MEM, 0, models_text);
 		strcat(debug_text, models_text);

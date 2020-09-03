@@ -91,6 +91,9 @@ void render_run()
             vec2f uvin[CLIP_POINT_IN];
             vec2f uvout[CLIP_POINT_OUT];
 
+			vec3f norm;
+			vec3f transa;
+
             vec3i ai;
             vec3i bi;
             vec3i ci;
@@ -99,18 +102,24 @@ void render_run()
             vec2f uvb;
             vec2f uvc;
 
-//            mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->view);
-            mat4f mv = CAMERA->view;
+
+            mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->view);
 
             for(int f=0;f<RENDER_DATA.models[m].rtricnt;f++)
             {
                 in[0] = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
                 in[1] = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mv);
                 in[2] = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mv);
-        // FIXME: normals
                 uvin[0] = RENDER_DATA.models[m].rtri[f].uva;
                 uvin[1] = RENDER_DATA.models[m].rtri[f].uvb;
                 uvin[2] = RENDER_DATA.models[m].rtri[f].uvc;
+
+// FIXME: clean this up?
+                norm = vec3f_norm(vec3f_trans(RENDER_DATA.models[m].rtri[f].n, RENDER_DATA.models[m].trans));
+                transa = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, RENDER_DATA.models[m].trans);
+				vec3f normcam = vec3f_sub(transa, CAMERA->pos);
+				if(vec3f_dot(norm, normcam) > 0.f)
+					continue;
 
                 triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
                 for(int i=0;i<outcnt;i++)
@@ -120,7 +129,7 @@ void render_run()
                     out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->proj);
 
 					vec3f ofs = (vec3f){1,1,0};
-					vec3f scale = (vec3f){0.5f*RENDER_DATA.width,0.5f*RENDER_DATA.height,1};
+					vec3f scale = (vec3f){0.5f*RENDER_DATA.width,0.5f*RENDER_DATA.height,ZBUF_DEPTH};
 
 					out[i*3+0] = vec3f_scale(out[i*3+0],-1.f);
 					out[i*3+0] = vec3f_add(out[i*3+0], ofs);
