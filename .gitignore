@@ -3,8 +3,6 @@
 *.exe
 *.swp
 *.old
-*.blend
-*.blend1
 *o
 obj/*
 graph
