@@ -50,8 +50,8 @@ void game_run(player *p , model *m, model *sphere)
 {       
 	if(INPUT_DATA.mouseactivity)
 	{
-		p->face.x -= (float)(input_mouse_relx()*MOUSE_SENSITIVITY);
-		p->face.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY);
+		p->face.x += (float)(input_mouse_relx()*MOUSE_SENSITIVITY*DEG2RAD);
+		p->face.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY*DEG2RAD);
 	}
 	if(input_key(KEY_W))
 		p->impulse.x += IMPULSE;
@@ -73,10 +73,9 @@ void game_run(player *p , model *m, model *sphere)
 	if(input_key(KEY_R))
 	{
 		vec3f pos = p->muzzle;
-		float sx = sin(p->face.x)*10;
-		float cx = cos(p->face.x)*10;
-		float sy = sin(p->face.y)*10;
-		vec3f vel = (vec3f){sx,cx,sy};
+		vec3f vel = (vec3f){10.f, 0.f, 0.f};
+		mat4f rmat = mat_rotate((vec3f){0.f, p->face.y, p->face.x});
+		vel = vec3f_trans(vel, rmat);
 		float radius = 1/0.1f;
 		bullet *b = bullet_add(pos, vel, radius, sphere);
 		if(b)
@@ -182,7 +181,7 @@ player player_init(vec3f p)
 	out.r = (vec3f){1/1.4f, 1/1.4f, 1/1.3f};
 	out.flags = FLAG_NONE;
 
-	out.muzzle_ofs = (vec3f){1.0f, 0.0f, 1.0f};
+	out.muzzle_ofs = (vec3f){1.f, 0.0f, 0.0f};
 	return out;
 }
 void player_free()
@@ -191,29 +190,22 @@ void player_free()
 
 void player_update_vel(player *p)
 {
-	float sa = sinf(p->face.x);
-	float ca = cosf(p->face.x);
+	mat4f rmat = mat_rotate((vec3f){0.f, 0.f, p->face.x});
 /*
 	if(p->flags & FLAG_AIR)
 		p->impulse = vec3f_scale(p->impulse, JUMP_FRAC);
 */
-	p->vel = vec3f_scale(p->vel, DRAG_FRAC);
 	if(p->flags & FLAG_GND)
 	{
-		p->vel.x += sa*p->impulse.x + ca*p->impulse.y;
-		p->vel.y += ca*p->impulse.x - sa*p->impulse.y;
+		p->vel = vec3f_trans(p->impulse, rmat);
 	}
+	p->vel = vec3f_scale(p->vel, DRAG_FRAC);
 	p->vel.z += p->impulse.z;
 }
 void player_update_muzzle(player *p)
 {
-	float sx = sinf(p->face.x);
-	float cx = cosf(p->face.x);
-	float sy = sinf(p->face.y);
-
-	p->muzzle.x = p->pos.x + (sx*p->muzzle_ofs.x + cx*p->muzzle_ofs.y);
-	p->muzzle.y = p->pos.y + (cx*p->muzzle_ofs.x - sx*p->muzzle_ofs.y);
-	p->muzzle.z = p->pos.z + sy*p->muzzle_ofs.z;
+	mat4f rmat = mat_rotate((vec3f){0.f, p->face.y, p->face.x});
+	p->muzzle = vec3f_add(p->pos, vec3f_trans(p->muzzle_ofs, rmat));
 }
 void player_collide_mobs(player *p)
 {

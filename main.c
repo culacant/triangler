@@ -73,12 +73,11 @@ int main()
 	unload_model_raw(iqe_knight);
 
 	player p = player_init((vec3f){35.f, 0.f, 30.f});
-//	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
+	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
 
 	camera cam = {0};
 	CAMERA = &cam;
 	CAMERA->pos = (vec3f){-7.0f,15.0f,9.0f};
-	CAMERA->angle = (vec2f){0.0f,0.0f};
 	camera_target_from_angle(CAMERA);
 	CAMERA->up = (vec3f){0.0f,1.0f,0.0f};
 
@@ -103,7 +102,7 @@ int main()
 		render_frametime_update();
 
 		CAMERA->pos = p.pos;
-		CAMERA->angle = p.face;
+		CAMERA->face = p.face;
 		camera_target_from_angle(CAMERA);
 		CAMERA->up = (vec3f){0.f, 0.f, 1.f};
 		CAMERA->view = mat_lookat(CAMERA->pos, CAMERA->target, CAMERA->up);

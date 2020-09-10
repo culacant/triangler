@@ -164,6 +164,15 @@ vec3f vec3f_trans(vec3f a, mat4f m)
 
 	return out;
 }
+vec3f vec3f_rotate(vec3f a, vec4f q)
+{
+	vec3f out = {0};
+    out.x = a.x*(q.x*q.x + q.w*q.w - q.y*q.y - q.z*q.z) + a.y*(2*q.x*q.y - 2*q.w*q.z) + a.z*(2*q.x*q.z + 2*q.w*q.y);
+    out.y = a.x*(2*q.w*q.z + 2*q.x*q.y) + a.y*(q.w*q.w - q.x*q.x + q.y*q.y - q.z*q.z) + a.z*(-2*q.w*q.x + 2*q.y*q.z);
+    out.z = a.x*(-2*q.w*q.y + 2*q.x*q.z) + a.y*(2*q.w*q.x + 2*q.y*q.z)+ a.z*(q.w*q.w - q.x*q.x - q.y*q.y + q.z*q.z);
+
+	return out;
+}
 vec3f vec_project_plane(vec3f p, vec3f o, vec3f n)
 {
 	vec3f v = vec3f_sub(p, o);
@@ -182,6 +191,32 @@ vec3f vec_project_segment(vec3f p, vec3f a, vec3f b)
 {
 	vec3f proj = vec_project_line(p, a, b);
 	return vec3f_clamp(proj, a, b);
+}
+
+vec4f vec4f_mul(vec4f a, vec4f b)
+{
+	return (vec4f){a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w};
+}
+vec4f vec4f_from_euler(float x, float y, float z)
+{
+//y = attitude
+//z = heading
+//x = bank
+    vec4f out;
+
+    float cx = cosf(x / 2.f);
+    float cy = cosf(y / 2.f);
+    float cz = cosf(z / 2.f);
+    float sx = sinf(x / 2.f);
+    float sy = sinf(y / 2.f);
+    float sz = sinf(z / 2.f);
+
+    out.x = sz*sy*cx + cz*cy*sx;
+    out.y = sz*cy*cx + cz*sy*sx;
+    out.z = cz*sy*cx - sz*cy*sx;
+    out.w = cz*cy*cx - sz*sy*sx;
+
+    return out;
 }
 
 float vec2f_dist(vec2f a, vec2f b)
@@ -361,13 +396,12 @@ mat4f mat_lookat(vec3f pos, vec3f tar, vec3f up)
 
 	vec3f fwd = vec3f_norm(vec3f_sub(tar, pos));
 	vec3f newup = vec3f_norm(vec3f_sub(up, vec3f_scale(fwd, vec3f_dot(up,fwd))));
-// right is inverted because i fucked up and cba to fix everything
 	vec3f right = vec3f_cross(newup, fwd);
 
-	out.m0 = -right.x;
-	out.m4 = -right.y;
-	out.m8 = -right.z;
-	out.m12 = vec3f_dot(pos,right);
+	out.m0 = right.x;
+	out.m4 = right.y;
+	out.m8 = right.z;
+	out.m12 = -vec3f_dot(pos,right);
 
 	out.m1 = newup.x;
 	out.m5 = newup.y;
@@ -392,6 +426,39 @@ mat4f mat_transform(vec3f pos)
 				 0.0f, 1.0f, 0.0f, pos.y,
 				 0.0f, 0.0f, 1.0f, pos.z,
 				 0.0f, 0.0f, 0.0f, 1.0f};
+	return out;
+}
+mat4f mat_rotate(vec3f rot)
+{
+	mat4f out =  {0};
+
+	float cosx = cosf(-rot.x);
+	float sinx = sinf(-rot.x);
+	float cosy = cosf(-rot.y);
+	float siny = sinf(-rot.y);
+	float cosz = cosf(-rot.z);
+	float sinz = sinf(-rot.z);
+
+	out.m0 = cosz*cosy;
+	out.m1 = sinz*cosy;
+	out.m2 = -siny;
+	out.m3 = 0.f;
+
+	out.m4 = (cosz*siny*sinx)-(sinz*cosx);
+	out.m5 = (sinz*siny*sinx)+(cosz*cosx);
+	out.m6 = cosy*sinx;
+	out.m7 = 0.f;
+
+	out.m8 = (cosz*siny*cosx)+(sinz*sinx);
+	out.m9 = (sinz*siny*cosx)-(cosz*sinx);
+	out.m10 = cosy*cosx;
+	out.m11 = 0.f;
+
+	out.m12 = 0.f;
+	out.m13 = 0.f;
+	out.m14 = 0.f;
+	out.m15 = 1.f;
+
 	return out;
 }
 mat4f mat_invert(mat4f a)

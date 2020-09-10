@@ -104,6 +104,8 @@ void render_run()
 
 
             mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->view);
+            mat4f mvn = mat_transpose(mat_invert(RENDER_DATA.models[m].trans));
+
 
             for(int f=0;f<RENDER_DATA.models[m].rtricnt;f++)
             {
@@ -114,12 +116,22 @@ void render_run()
                 uvin[1] = RENDER_DATA.models[m].rtri[f].uvb;
                 uvin[2] = RENDER_DATA.models[m].rtri[f].uvc;
 
-// FIXME: clean this up?
+// FIXME: clean this up? norms get fucked up when transformed
                 norm = vec3f_norm(vec3f_trans(RENDER_DATA.models[m].rtri[f].n, RENDER_DATA.models[m].trans));
                 transa = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, RENDER_DATA.models[m].trans);
 				vec3f normcam = vec3f_sub(transa, CAMERA->pos);
+
+				vec3f cola = (vec3f){255.f, 0.f, 0.f};
+				vec3f colb = (vec3f){0.f, 255.f, 0.f};
+				vec3f colc = (vec3f){0.f, 0.f, 255.f};
+
 				if(vec3f_dot(norm, normcam) > 0.f)
-					continue;
+				{
+					cola = (vec3f){255.f, 0.f, 255.f};
+					colb = (vec3f){255.f, 0.f, 255.f};
+					colc = (vec3f){255.f, 0.f, 255.f};
+//					continue;
+				}
 
                 triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
                 for(int i=0;i<outcnt;i++)
@@ -158,7 +170,7 @@ void render_run()
 					   (ai.y>=RENDER_DATA.height&& bi.y>=RENDER_DATA.height&& ci.y>=RENDER_DATA.height))
 						continue;
 //					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
-					triangle_color(ai,bi,ci,(vec3f){255.f, 0.f, 0.f},(vec3f){0.f, 255.f, 0.f},(vec3f){0.f, 0.f, 255.f});
+					triangle_color(ai,bi,ci,cola, colb, colc);
                 }
             }
 
@@ -300,9 +312,9 @@ void camera_angle_from_target(camera *cam)
 }
 void camera_target_from_angle(camera *cam)
 {
-	cam->target.x = sinf(cam->angle.x);
-	cam->target.y = cosf(cam->angle.x);
-	cam->target.z = cosf(cam->angle.y);
+	vec3f fwd = (vec3f){1.f, 0.f, 0.f};
+	mat4f rmat = mat_rotate((vec3f){0.f, cam->face.y, cam->face.x});
+	cam->target = vec3f_trans(fwd, rmat);
 
 	cam->target = vec3f_add(cam->target, cam->pos);
 }
@@ -793,21 +805,16 @@ model_raw loadiqe(const char *filename)
 			fmcnt++;
 		}
 	}
-// calculate normals
-/*
-	vec3f a;
-	vec3f b;
-	vec3f c;
-*/
 	for(int f=0;f<out.fcnt;f++)
 	{
 // TODO: sanitize blender export normals
 /*
-		a = out.vp[out.fm[f*3+0]];
-		b = out.vp[out.fm[f*3+1]];
-		c = out.vp[out.fm[f*3+2]];
+// calculate normals
+		vec3f a = out.vp[out.fm[f*3+0]];
+		vec3f b = out.vp[out.fm[f*3+1]];
+		vec3f c = out.vp[out.fm[f*3+2]];
 
-		out.fn[f] = vec_cross(vec3f_sub(b,a),vec3f_sub(c,a));
+		out.fn[f] = vec3f_cross(vec3f_sub(b,a),vec3f_sub(c,a));
 		out.fn[f] = vec3f_norm(out.fn[f]);
 */
 

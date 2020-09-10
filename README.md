@@ -16,9 +16,10 @@ game engine using libc and linux API.
 0) optimizations
 1) guns guns gun
 2) pathfinding and AI
-3) fix backface culling
+3) split geometry into chunks
 4) put everything into memory allocator
 5) figure out how i made call graphs
+6) backface culling for render & collisions
 
 ## TODO longterm
 - color palette/16-bit color

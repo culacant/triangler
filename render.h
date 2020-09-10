@@ -28,31 +28,32 @@
 #define BUTTON_RIGHT 	0x2
 #define BUTTON_MIDDLE 	0x4
 
-#define MOUSE_SENSITIVITY 0.001f
+#define MOUSE_SENSITIVITY 0.5f
 
 #define BSHIFT 			0
 #define GSHIFT 			8
 #define RSHIFT 			16
 #define ASHIFT 			24
 
-#define BMASK			0x0000FF
-#define GMASK			0x00FF00
-#define RMASK			0xFF0000
-#define AMASK			0x000000FF
+#define BMASK			0x000000FF
+#define GMASK			0x0000FF00
+#define RMASK			0x00FF0000
+#define AMASK			0xFF000000
 
-#define ZBUF_DEPTH 		1024
+#define ZBUF_DEPTH 		2048.f
 #define ZBUF_MIN		INT_MIN
 
 #define CLIP_POINT_IN 	3
 #define CLIP_POINT_OUT 	6
 #define CLIP_NEAR		0.1f
 
-#define PI 				3.14159265358979323846
+#define PI 				3.14159265358979323846f
+#define DEG2RAD			(PI/180.f)
 
 #define COLLISION_FALSE 0
 #define COLLISION_TRUE	1
 #define COLLISION_DONE  2
-#define THIRD 			0.333333
+#define THIRD 			0.333333f
 #define SMALLNR 		0.000001f
 
 #define MODEL_CNT		64
@@ -154,7 +155,7 @@ typedef struct collision
 
 typedef struct camera
 {
-	vec2f angle;
+	vec2f face;
 
 	vec3f pos;
 	vec3f target;
@@ -327,9 +328,13 @@ vec3f barycentric_i(vec3i a, vec3i b, vec3i c, vec3i p);
 vec3f bary3carth(vec3i a, vec3i b, vec3i c, vec3f p);
 vec2f bary2carth(vec2f a, vec2f b, vec2f c, vec3f p);
 vec3f vec3f_trans(vec3f a, mat4f m);
+vec3f vec3f_rotate(vec3f a, vec4f q);
 vec3f vec_project_plane(vec3f p, vec3f o, vec3f n);
 vec3f vec_project_line(vec3f p, vec3f a, vec3f b);
 vec3f vec_project_segment(vec3f p, vec3f a, vec3f b);
+
+vec4f vec4f_mul(vec4f a, vec4f b);
+vec4f vec4f_from_euler(float x, float y, float z);
 
 float vec2f_dist(vec2f a, vec2f b);
 vec2f vec2f_sub(vec2f a, vec2f b);
@@ -364,6 +369,7 @@ mat4f mat_project(float fov, float aspect, float near, float far);
 mat4f mat_mul(mat4f a, mat4f b);
 mat4f mat_lookat(vec3f eye, vec3f center, vec3f up);
 mat4f mat_transform(vec3f pos);
+mat4f mat_rotate(vec3f rot);
 mat4f mat_invert(mat4f a);
 mat4f mat_transpose(mat4f a);
 mat4f mat_rotation(vec3f angles);
