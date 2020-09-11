@@ -6,7 +6,7 @@
 #define BULLET_CNT			0x0f
 #define MOB_CNT 			0x0f
 
-#define IMPULSE				0.0001f
+#define IMPULSE				0.001f
 #define GRAVITY 			(vec3f){0.0f, 0.0f, -0.0001f}
 #define FLOOR_Z_TRESHOLD	0.6f
 #define JUMP_FRAC 			0.1f
@@ -80,7 +80,7 @@ typedef struct game_data
 void game_init();
 void game_free();
 void game_flush();
-void game_run(player *p, model *m, model *sphere);
+void game_run(player *p, model *sphere);
 
 player player_init();
 void player_free();

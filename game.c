@@ -46,7 +46,7 @@ void game_flush()
 	memcpy(RENDER_DATA.models, GAME_DATA.models, sizeof(model)*MODEL_CNT);
 }
 
-void game_run(player *p , model *m, model *sphere)
+void game_run(player *p , model *sphere)
 {       
 	if(INPUT_DATA.mouseactivity)
 	{
@@ -178,7 +178,7 @@ player player_init(vec3f p)
 	out.vel = (vec3f){0.0f, 0.0f, 0.0f};
 	out.impulse = (vec3f){0.0f, 0.0f, 0.0f};
 	out.face = (vec2f){0.f, 0.f};
-	out.r = (vec3f){1/1.4f, 1/1.4f, 1/1.3f};
+	out.r = (vec3f){1/0.5f, 1/0.5f, 1/1.3f};
 	out.flags = FLAG_NONE;
 
 	out.muzzle_ofs = (vec3f){1.f, 0.0f, 0.0f};

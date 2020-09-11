@@ -28,51 +28,47 @@ int main()
 	input_init();
 
 	char debug_text[2048];
-	model_raw iqe_tri = loadiqe("res/tri.iqe");
 	texture t_tiles = loadtga("res/tiles.tga");
-	model *tri = load_model(iqe_tri, iqe_tri, &t_tiles);
-	tri->flags = MODEL_FLAG_DRAW;
-	unload_model_raw(iqe_tri);
+	texture t_floor = loadtga("res/lvl/floor.tga");
+	texture t_wall = loadtga("res/lvl/wall.tga");
 
 	model_raw iqe_sphere = loadiqe("res/sphere.iqe");
 	model_raw iqe_knight = loadiqe("res/knight.iqe");
-//	texture t_tiles = loadtga("res/tiles.tga");
 
+	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
+	sphere->flags = 0;
+	model *knight = load_model(iqe_knight, iqe_knight, &t_tiles);
+	knight->flags = MODEL_FLAG_DRAW;
+	unload_model_raw(iqe_sphere);
+	unload_model_raw(iqe_knight);
+
+	model_raw iqe_lvl = loadiqe("res/lvl/level1_vc.iqe");
+	model_raw iqe_lvl_col = loadiqe("res/lvl/level1_vc_col.iqe");
+	model *m = load_model(iqe_lvl, iqe_lvl_col, &t_floor);
+	m->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
+	unload_model_raw(iqe_lvl);
+	unload_model_raw(iqe_lvl_col);
+
+/*
 	model_raw iqe_wall = loadiqe("res/lvl/level1_wall.iqe");
 	model_raw iqe_floor = loadiqe("res/lvl/level1_floor.iqe");
 	
 	model_raw iqe_wall_col = loadiqe("res/lvl/level1_wall_col.iqe");
 	model_raw iqe_floor_col = loadiqe("res/lvl/level1_floor_col.iqe");
 
-	texture t_floor = loadtga("res/lvl/floor.tga");
-	texture t_wall = loadtga("res/lvl/wall.tga");
-
-//	model *m = load_model(iqe_col, iqe, &t_tiles);
-
 	model *m = load_model(iqe_floor, iqe_floor, &t_floor);
-	m->flags = MODEL_FLAG_COLLIDE;
 	m->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
 	model *m2 = load_model(iqe_wall, iqe_wall, &t_wall);
-	m2->flags = MODEL_FLAG_COLLIDE;
 	m2->flags = MODEL_FLAG_COLLIDE | MODEL_FLAG_DRAW;
-
-	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
-	sphere->flags = 0;
-	model *knight = load_model(iqe_knight, iqe_knight, &t_tiles);
-	knight->flags = 0;
 
 	unload_model_raw(iqe_wall);
 	unload_model_raw(iqe_floor);
 	unload_model_raw(iqe_wall_col);
 	unload_model_raw(iqe_floor_col);
-/*
-	unload_model_raw(iqe);
-	unload_model_raw(iqe_col);
 */
-	unload_model_raw(iqe_sphere);
-	unload_model_raw(iqe_knight);
 
-	player p = player_init((vec3f){35.f, 0.f, 30.f});
+
+	player p = player_init((vec3f){0.f, 0.f, 30.f});
 	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
 
 	camera cam = {0};
@@ -93,7 +89,7 @@ int main()
 		game_frametime_update();
 
 		input_flush();
-		game_run(&p, m, sphere);
+		game_run(&p, sphere);
 		game_flush();
 
 		game_frametime_update();

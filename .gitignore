@@ -4,6 +4,8 @@
 *.swp
 *.old
 *o
+*blend
+*blend1
 obj/*
 graph
 test/test.exe

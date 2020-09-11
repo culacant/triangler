@@ -91,8 +91,6 @@ void render_run()
             vec2f uvin[CLIP_POINT_IN];
             vec2f uvout[CLIP_POINT_OUT];
 
-			vec3f norm;
-			vec3f transa;
 
             vec3i ai;
             vec3i bi;
@@ -102,13 +100,23 @@ void render_run()
             vec2f uvb;
             vec2f uvc;
 
+			vec3f cola;
+			vec3f colb;
+			vec3f colc;
+
 
             mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->view);
-            mat4f mvn = mat_transpose(mat_invert(RENDER_DATA.models[m].trans));
-
+			mat4f mvn = mat_transpose(mat_invert(RENDER_DATA.models[m].trans));
 
             for(int f=0;f<RENDER_DATA.models[m].rtricnt;f++)
             {
+			vec3f norm = vec3f_trans(RENDER_DATA.models[m].rtri[f].n, mvn);
+			vec3f a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, RENDER_DATA.models[m].trans);
+			vec3f normcam = vec3f_sub(a, CAMERA->pos);
+			if(vec3f_dot(norm, normcam) > 0.f)
+				continue;
+
+
                 in[0] = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
                 in[1] = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mv);
                 in[2] = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mv);
@@ -116,24 +124,12 @@ void render_run()
                 uvin[1] = RENDER_DATA.models[m].rtri[f].uvb;
                 uvin[2] = RENDER_DATA.models[m].rtri[f].uvc;
 
-// FIXME: clean this up? norms get fucked up when transformed
-                norm = vec3f_norm(vec3f_trans(RENDER_DATA.models[m].rtri[f].n, RENDER_DATA.models[m].trans));
-                transa = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, RENDER_DATA.models[m].trans);
-				vec3f normcam = vec3f_sub(transa, CAMERA->pos);
-
-				vec3f cola = (vec3f){255.f, 0.f, 0.f};
-				vec3f colb = (vec3f){0.f, 255.f, 0.f};
-				vec3f colc = (vec3f){0.f, 0.f, 255.f};
-
-				if(vec3f_dot(norm, normcam) > 0.f)
-				{
-					cola = (vec3f){255.f, 0.f, 255.f};
-					colb = (vec3f){255.f, 0.f, 255.f};
-					colc = (vec3f){255.f, 0.f, 255.f};
-//					continue;
-				}
+				cola = RENDER_DATA.models[m].rtri[f].cola;
+				colb = RENDER_DATA.models[m].rtri[f].colb;
+				colc = RENDER_DATA.models[m].rtri[f].colc;
 
                 triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+
                 for(int i=0;i<outcnt;i++)
                 {
                     out[i*3+0] = vec3f_trans(out[i*3+0], CAMERA->proj);
@@ -843,19 +839,19 @@ render_triangle* render_load_tris(model_raw m)
 		out[f].a = m.vp[fi];
 		out[f].uva = m.vt[fi];
 		out[f].n = m.vn[fi];
-		out[f].cola = m.vc[fi];
+		out[f].cola = vec3f_scale(m.vc[fi],255.f);
 
 		fi = m.fm[f*3+1];
 		out[f].b = m.vp[fi];
 		out[f].uvb = m.vt[fi];
 		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
-		out[f].colb = m.vc[fi];
+		out[f].colb = vec3f_scale(m.vc[fi],255.f);
 
 		fi = m.fm[f*3+2];
 		out[f].c = m.vp[fi];
 		out[f].uvc = m.vt[fi];
 		out[f].n = vec3f_add(out[f].n, m.vn[fi]);
-		out[f].colc = m.vc[fi];
+		out[f].colc = vec3f_scale(m.vc[fi],255.f);
 
 		out[f].n = vec3f_norm(out[f].n);
 	}

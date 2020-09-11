@@ -40,7 +40,7 @@
 #define RMASK			0x00FF0000
 #define AMASK			0xFF000000
 
-#define ZBUF_DEPTH 		2048.f
+#define ZBUF_DEPTH 		1048576.f
 #define ZBUF_MIN		INT_MIN
 
 #define CLIP_POINT_IN 	3
