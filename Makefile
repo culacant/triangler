@@ -3,7 +3,7 @@ CC = gcc
 #CFLAGS = -std=c99 -ggdb -Wall -O3 -D_POSIX_SOURCE -D_GNU_SOURCE
 # breaks valgrind
 CFLAGS = -std=c99 -Wall -O3 -march=native -D_POSIX_SOURCE -D_GNU_SOURCE
-CFLAGS_DEBUG = -std=c99 -Wall -ggdb  -D_POSIX_SOURCE -D_GNU_SOURCE
+CFLAGS_DEBUG = -std=c99 -Wall -ggdb  -D_POSIX_SOURCE -D_GNU_SOURCE -pg
 LDFLAGS = -lm
 
 exe: 

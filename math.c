@@ -193,6 +193,12 @@ vec3f vec_project_segment(vec3f p, vec3f a, vec3f b)
 	return vec3f_clamp(proj, a, b);
 }
 
+float vec3f_dist_plane(vec3f p, vec3f n, vec3f a)
+{
+	float npdot = vec3f_dot(n, p);
+	return n.x*a.x + n.y*a.y + n.z*a.z - npdot;
+}
+
 vec4f vec4f_mul(vec4f a, vec4f b)
 {
 	return (vec4f){a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w};
@@ -298,6 +304,15 @@ vec4f vec4f_lerp(vec4f a, vec4f b, float amt)
        out.z = lerp(a.z, b.z, amt);
        out.w = lerp(a.z, b.z, amt);
        return out;
+}
+
+float vec3f_lerp_plane(vec3f p, vec3f n, vec3f a, vec3f b)
+{
+	float npdot = vec3f_dot(n, p);
+	float andot = vec3f_dot(a, n);
+	float bndot = vec3f_dot(b, n);
+
+	return (npdot-andot)/(bndot-andot);
 }
 
 vec3f vec3f_clamp(vec3f p, vec3f a, vec3f b)

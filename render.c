@@ -110,11 +110,11 @@ void render_run()
 
             for(int f=0;f<RENDER_DATA.models[m].rtricnt;f++)
             {
-			vec3f norm = vec3f_trans(RENDER_DATA.models[m].rtri[f].n, mvn);
-			vec3f a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, RENDER_DATA.models[m].trans);
-			vec3f normcam = vec3f_sub(a, CAMERA->pos);
-			if(vec3f_dot(norm, normcam) > 0.f)
-				continue;
+				vec3f norm = vec3f_trans(RENDER_DATA.models[m].rtri[f].n, mvn);
+				vec3f a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, RENDER_DATA.models[m].trans);
+				vec3f normcam = vec3f_sub(a, CAMERA->pos);
+				if(vec3f_dot(norm, normcam) > 0.f)
+					continue;
 
 
                 in[0] = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
@@ -498,17 +498,24 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 
 		for(int y=miny;y<maxy;y++)
 		{   
+// TODO: this breaks renderer
 			if(y<0)
 			{
-				curxl += stepxl;
-				curxs += stepxs;
+				float ycnt = 1.f;
+				while(y<0)
+				{
+					ycnt += 1.f;
+					y++;
+				}
 
-				curzl += stepzl;
-				curzs += stepzs;
+				curxl += stepxl*ycnt;
+				curxs += stepxs*ycnt;
 
-				curcl = vec3f_add(curcl, stepcl);
-				curcs = vec3f_add(curcs, stepcs);
-				continue;
+				curzl += stepzl*ycnt;
+				curzs += stepzs*ycnt;
+
+				curcl = vec3f_add(curcl, vec3f_scale(stepcl, ycnt));
+				curcs = vec3f_add(curcs, vec3f_scale(stepcs, ycnt));
 			}
 			else if(y >= RENDER_DATA.height)
 				break;
@@ -549,10 +556,9 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 
 				minz += dz;
 
-				minc = vec3f_add(minc, dc);
-
 				if(render_getz(x, y) < minz)
 				{
+					minc = vec3f_add(minc, dc);
 					unsigned int col = color_rgb(minc.x, minc.y, minc.z);
 					render_px(x, y, col);
 					render_setz(x, y, minz);
@@ -1053,6 +1059,122 @@ void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f ou
 	uvout[1] = vec2f_lerp(out2uv, inuv, lerp2);
 	uvout[2] = inuv;
 }
+int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *out0,render_triangle *    out1)
+{
+	int incnt = 0;
+	int outcnt = 0;
+	vec3f inp[3];
+	vec3f outp[3];
+	vec3f inc[3];
+	vec3f outc[3];
+	vec2f inuv[3];
+	vec2f outuv[3];
+
+	float dista = vec3f_dist_plane(p, n, in.a);
+	float distb = vec3f_dist_plane(p, n, in.b);
+	float distc = vec3f_dist_plane(p, n, in.c);
+
+	if(dista >= 0)
+	{
+		inp[incnt] = in.a;
+		inc[incnt] = in.cola;
+		inuv[incnt] = in.uva;
+		incnt++;
+	}
+	else
+	{
+		outp[outcnt] = in.a;
+		outc[outcnt] = in.cola;
+		outuv[outcnt] = in.uva;
+		outcnt++;
+	}
+	if(distb >= 0)
+	{
+		inp[incnt] = in.b;
+		inc[incnt] = in.colb;
+		inuv[incnt] = in.uvb;
+		incnt++;
+	}
+	else
+	{
+		outp[outcnt] = in.b;
+		outc[outcnt] = in.colb;
+		outuv[outcnt] = in.uvb;
+		outcnt++;
+	}
+	if(distc >= 0)
+	{
+		inp[incnt] = in.a;
+		inc[incnt] = in.cola;
+		inuv[incnt] = in.uva;
+		incnt++;
+	}
+	else
+	{
+		outp[outcnt] = in.c;
+		outc[outcnt] = in.colc;
+		outuv[outcnt] = in.uvc;
+		outcnt++;
+	}
+	
+	if(incnt == 0)
+		return 0;
+	else if(incnt == 3)
+	{
+		*out0 = in;
+		return 1;
+	}
+	else if(incnt == 1)
+	{
+		float l1 = vec3f_lerp_plane(p, n, inp[0], outp[0]);
+		float l2 = vec3f_lerp_plane(p, n, inp[0], outp[1]);
+
+		out0->a = inp[0];
+		out0->cola = inc[0];
+		out0->uva = inuv[0];
+
+		out0->b = vec3f_lerp(inp[0], outp[0], l1);
+		out0->colb = vec3f_lerp(inc[0], outc[0], l1);
+		out0->uvb = vec2f_lerp(inuv[0], outuv[0], l1);
+
+		out0->c = vec3f_lerp(inp[0], outp[1], l2);
+		out0->colc = vec3f_lerp(inc[0], outc[1], l2);
+		out0->uvc = vec2f_lerp(inuv[0], outuv[1], l2);
+		return 1;
+	}
+	else // if(incnt == 2)
+	{
+		float l1 = vec3f_lerp_plane(p, n, inp[0], outp[0]);
+		float l2 = vec3f_lerp_plane(p, n, inp[1], outp[0]);
+
+		out0->a = inp[0];
+		out0->cola = inc[0];
+		out0->uva = inuv[0];
+
+		out0->b = inp[1];
+		out0->colb = inc[1];
+		out0->uvb = inuv[1];
+
+		out0->c = vec3f_lerp(inp[0], outp[0], l1);
+		out0->colc = vec3f_lerp(inc[0], outc[0], l1);
+		out0->uvc = vec2f_lerp(inuv[0], outuv[0], l1);
+
+		out1->a = inp[1];
+		out1->cola = inc[1];
+		out1->uva = inuv[1];
+
+		out1->b = inp[2];
+		out1->colb = inc[2];
+		out1->uvb = inuv[2];
+
+		out1->c = vec3f_lerp(inp[1], outp[0], l2);
+		out1->colc = vec3f_lerp(inc[1], outc[0], l2);
+		out1->uvc = vec2f_lerp(inuv[1], outuv[0], l2);
+
+		return 2;
+	}
+}
+
 
 unsigned int color_rgb(unsigned char r, unsigned char g, unsigned char b)
 {

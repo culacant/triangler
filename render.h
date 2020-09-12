@@ -278,6 +278,7 @@ void drawtex(texture t);
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout);
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
 void triangle_clip_double(vec3f in, vec3f out1, vec3f out2, vec2f inuv, vec2f out1uv, vec2f out2uv, vec3f *posout, vec2f *uvout);
+int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *out0,render_triangle *out1);
 
 unsigned int color_rgb(unsigned char r, unsigned char g, unsigned char b); 
 unsigned int brighten(unsigned int c, float b);
@@ -333,6 +334,8 @@ vec3f vec_project_plane(vec3f p, vec3f o, vec3f n);
 vec3f vec_project_line(vec3f p, vec3f a, vec3f b);
 vec3f vec_project_segment(vec3f p, vec3f a, vec3f b);
 
+float vec3f_dist_plane(vec3f p, vec3f n, vec3f a);
+
 vec4f vec4f_mul(vec4f a, vec4f b);
 vec4f vec4f_from_euler(float x, float y, float z);
 
@@ -351,6 +354,8 @@ vec3f vec3f_lerp(vec3f a, vec3f b, float amt);
 vec3i vec3i_lerp(vec3i a, vec3i b, float amt);
 vec2f vec2f_lerp(vec2f a, vec2f b, float amt);
 vec4f vec4f_lerp(vec4f a, vec4f b, float amt);
+
+float vec3f_lerp_plane(vec3f p, vec3f n, vec3f a, vec3f b);
 
 vec3f vec3f_clamp(vec3f a, vec3f min, vec3f max);
 

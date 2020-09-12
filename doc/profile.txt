@@ -1,0 +1,4 @@
+1) add -pg to CFLAGS
+2) run program
+3) gprof ../render.exe gmon.out > gprof.txt
+4) ./gprof2dot.py ./gprof.txt -n0 -e0 | dot -Tpng -o output.png
