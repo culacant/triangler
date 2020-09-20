@@ -43,8 +43,8 @@
 #define ZBUF_DEPTH 		1048576.f
 #define ZBUF_MIN		INT_MIN
 
-#define CLIP_POINT_IN 	3
-#define CLIP_POINT_OUT 	6
+#define CLIP_TRI_IN 	3
+#define CLIP_TRI_OUT 	6
 #define CLIP_NEAR		0.1f
 
 #define PI 				3.14159265358979323846f

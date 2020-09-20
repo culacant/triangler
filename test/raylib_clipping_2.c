@@ -24,6 +24,10 @@ float lerp(float a, float b, float amt)
 {
     return (float)a+amt*(b-a);
 }
+float inv_lerp(float a, float b, float c)
+{
+    return (float)(c-a)/(b-a);
+}
 
 vec3f vec3f_lerp(vec3f a, vec3f b, float amt)
 {
@@ -44,6 +48,7 @@ float vec3f_lerp_plane(vec3f p, vec3f n, vec3f a, vec3f b)
     float npdot = vec3f_dot(n, p);
     float andot = vec3f_dot(a, n);
     float bndot = vec3f_dot(b, n);
+	printf("npdot %f - andot %f / bndot %f - andot %f\n", npdot, andot, bndot, andot);
 
     return (npdot-andot)/(bndot-andot);
 }
@@ -123,19 +128,15 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
     {
         float l1 = vec3f_lerp_plane(p, n, inp[0], outp[0]);
         float l2 = vec3f_lerp_plane(p, n, inp[1], outp[0]);
+		printf("l1: %f l2: %f\n", l1, l2);
 
         out0->a = inp[0];
-
         out0->b = inp[1];
-
         out0->c = vec3f_lerp(inp[0], outp[0], l1);
 
-        out1->a = inp[1];
-
-        out1->b = inp[2];
-
-        out1->c = vec3f_lerp(inp[1], outp[0], l2);
-
+        out1->a = vec3f_lerp(inp[1], outp[0], l2);
+        out1->b = inp[0];
+        out1->c = inp[1];
         return 2;
     }
 }
@@ -180,6 +181,32 @@ int main(void)
 			in.b = b;
 			in.c = c;
 			outcnt = triangle_clip_plane(p, n, in, &out0,&out1);
+			switch(outcnt)
+			{
+				case 3:
+					printf("ALL\n");
+					break;
+				case 2:
+					printf("0:\n");
+					printf("%f %f %f\n",out0.a.x, out0.a.y, out0.a.z);
+					printf("%f %f %f\n",out0.b.x, out0.b.y, out0.b.z);
+					printf("%f %f %f\n",out0.c.x, out0.c.y, out0.c.z);
+					printf("1:\n");
+					printf("%f %f %f\n",out1.a.x, out1.a.y, out1.a.z);
+					printf("%f %f %f\n",out1.b.x, out1.b.y, out1.b.z);
+					printf("%f %f %f\n",out1.c.x, out1.c.y, out1.c.z);
+					break;
+				case 1:
+					printf("0:\n");
+					printf("%f %f %f\n",out0.a.x, out0.a.y, out0.a.z);
+					printf("%f %f %f\n",out0.b.x, out0.b.y, out0.b.z);
+					printf("%f %f %f\n",out0.c.x, out0.c.y, out0.c.z);
+					break;
+				case 0:
+				default:
+					printf("NONE\n");
+				break;
+			}
 		}
 		if(IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
 		{
@@ -201,23 +228,28 @@ int main(void)
 					break;
 			}
 		}
-//		printf("dist: %f\n", vec3f_dist_plane(p, n, a));
-printf("%i\n", click);
         BeginDrawing();
 
             ClearBackground(RAYWHITE);
-			DrawCircle(a.x, a.z, 5.0f, RED);
-			DrawCircle(b.x, b.z, 5.0f, RED);
-			DrawCircle(c.x, c.z, 5.0f, RED);
+			DrawCircle(a.x, a.z, 1.0f, RED);
+			DrawCircle(b.x, b.z, 1.0f, RED);
+			DrawCircle(c.x, c.z, 1.0f, RED);
 
-			DrawCircle(out0.a.x, out0.a.z, 5.0f, GREEN);
-			DrawCircle(out0.b.x, out0.b.z, 5.0f, GREEN);
-			DrawCircle(out0.c.x, out0.c.z, 5.0f, GREEN);
+			if(outcnt == 1)
+			{
+	DrawLine(out0.a.x, out0.a.z, out0.b.x, out0.b.z, GREEN);
+	DrawLine(out0.b.x, out0.b.z, out0.c.x, out0.c.z, GREEN);
+	DrawLine(out0.c.x, out0.c.z, out0.a.x, out0.a.z, GREEN);
+			}
 			if(outcnt == 2)
 			{
-				DrawCircle(out1.a.x, out1.a.z, 5.0f, BLUE);
-				DrawCircle(out1.b.x, out1.b.z, 5.0f, BLUE);
-				DrawCircle(out1.c.x, out1.c.z, 5.0f, BLUE);
+	DrawLine(out0.a.x, out0.a.z, out0.b.x, out0.b.z, GREEN);
+	DrawLine(out0.b.x, out0.b.z, out0.c.x, out0.c.z, GREEN);
+	DrawLine(out0.c.x, out0.c.z, out0.a.x, out0.a.z, GREEN);
+
+	DrawLine(out1.a.x, out1.a.z, out1.b.x, out1.b.z, BLUE);
+	DrawLine(out1.b.x, out1.b.z, out1.c.x, out1.c.z, BLUE);
+	DrawLine(out1.c.x, out1.c.z, out1.a.x, out1.a.z, BLUE);
 			}
 draw_plane_2d(p, n);
 

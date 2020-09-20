@@ -85,26 +85,6 @@ void render_run()
         {
             texture t = *RENDER_DATA.models[m].tex;
 
-            int outcnt = 0;
-            vec3f in[CLIP_POINT_IN];
-            vec3f out[CLIP_POINT_OUT];
-            vec2f uvin[CLIP_POINT_IN];
-            vec2f uvout[CLIP_POINT_OUT];
-
-
-            vec3i ai;
-            vec3i bi;
-            vec3i ci;
-
-            vec2f uva;
-            vec2f uvb;
-            vec2f uvc;
-
-			vec3f cola;
-			vec3f colb;
-			vec3f colc;
-
-
             mat4f mv = mat_mul(RENDER_DATA.models[m].trans, CAMERA->view);
 			mat4f mvn = mat_transpose(mat_invert(RENDER_DATA.models[m].trans));
 
@@ -116,48 +96,59 @@ void render_run()
 				if(vec3f_dot(norm, normcam) > 0.f)
 					continue;
 
+				int outcnt = 0;
+				render_triangle in[CLIP_TRI_IN];
+				render_triangle out[CLIP_TRI_OUT];
 
-                in[0] = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
-                in[1] = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mv);
-                in[2] = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mv);
-                uvin[0] = RENDER_DATA.models[m].rtri[f].uva;
-                uvin[1] = RENDER_DATA.models[m].rtri[f].uvb;
-                uvin[2] = RENDER_DATA.models[m].rtri[f].uvc;
+                in[0].a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
+                in[0].b = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mv);
+                in[0].c = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mv);
+                in[0].uva = RENDER_DATA.models[m].rtri[f].uva;
+                in[0].uvb = RENDER_DATA.models[m].rtri[f].uvb;
+                in[0].uvc = RENDER_DATA.models[m].rtri[f].uvc;
+                in[0].cola = RENDER_DATA.models[m].rtri[f].cola;
+                in[0].colb = RENDER_DATA.models[m].rtri[f].colb;
+                in[0].colc = RENDER_DATA.models[m].rtri[f].colc;
 
-				cola = RENDER_DATA.models[m].rtri[f].cola;
-				colb = RENDER_DATA.models[m].rtri[f].colb;
-				colc = RENDER_DATA.models[m].rtri[f].colc;
+				vec3f pz = (vec3f){0.f, 0.f, CLIP_NEAR};
+				vec3f nz = (vec3f){0.f, 0.f, -1.f};
+				outcnt = triangle_clip_plane(pz, nz, in[0], &out[0],&out[1]);
 
-                triangle_clip_viewport(in, uvin, out, uvout, &outcnt);
+
+				vec3i ai;
+				vec3i bi;
+				vec3i ci;
+				outcnt = 1;
+				out[0] = in[0];
 
                 for(int i=0;i<outcnt;i++)
                 {
-                    out[i*3+0] = vec3f_trans(out[i*3+0], CAMERA->proj);
-                    out[i*3+1] = vec3f_trans(out[i*3+1], CAMERA->proj);
-                    out[i*3+2] = vec3f_trans(out[i*3+2], CAMERA->proj);
+					out[i].a = vec3f_trans(out[i].a, CAMERA->proj);
+					out[i].b = vec3f_trans(out[i].a, CAMERA->proj);
+					out[i].c = vec3f_trans(out[i].a, CAMERA->proj);
 
 					vec3f ofs = (vec3f){1,1,0};
 					vec3f scale = (vec3f){0.5f*RENDER_DATA.width,0.5f*RENDER_DATA.height,ZBUF_DEPTH};
 
-					out[i*3+0] = vec3f_scale(out[i*3+0],-1.f);
-					out[i*3+0] = vec3f_add(out[i*3+0], ofs);
-					out[i*3+0] = vec3f_mul(out[i*3+0], scale);
+					out[i].a = vec3f_scale(out[i].a,-1.f);
+					out[i].a = vec3f_add(out[i].a, ofs);
+					out[i].a = vec3f_mul(out[i].a, scale);
 
-					out[i*3+1] = vec3f_scale(out[i*3+1],-1.f);
-					out[i*3+1] = vec3f_add(out[i*3+1], ofs);
-					out[i*3+1] = vec3f_mul(out[i*3+1], scale);
+					out[i].b = vec3f_scale(out[i].b,-1.f);
+					out[i].b = vec3f_add(out[i].b, ofs);
+					out[i].b = vec3f_mul(out[i].b, scale);
 
-					out[i*3+2] = vec3f_scale(out[i*3+2],-1.f);
-					out[i*3+2] = vec3f_add(out[i*3+2], ofs);
-					out[i*3+2] = vec3f_mul(out[i*3+2], scale);
+					out[i].c = vec3f_scale(out[i].c,-1.f);
+					out[i].c = vec3f_add(out[i].c, ofs);
+					out[i].c = vec3f_mul(out[i].c, scale);
 
-                    ai = (vec3i){out[i*3+0].x, out[i*3+0].y, out[i*3+0].z};
-                    bi = (vec3i){out[i*3+1].x, out[i*3+1].y, out[i*3+1].z};
-                    ci = (vec3i){out[i*3+2].x, out[i*3+2].y, out[i*3+2].z};
+                    ai = (vec3i){out[i].a.x, out[i].a.y, out[i].a.z};
+                    bi = (vec3i){out[i].b.x, out[i].b.y, out[i].b.z};
+                    ci = (vec3i){out[i].c.x, out[i].c.y, out[i].c.z};
 
-                    uva = uvout[i*2+0];
-                    uvb = uvout[i*2+1];
-                    uvc = uvout[i*2+2];
+					vec3f cola = out[i].cola;
+					vec3f colb = out[i].colb;
+					vec3f colc = out[i].colc;
 
 					if(((ai.y == bi.y) && (ai.y == ci.y)) 	||
 					   (ai.x<0 && bi.x<0 && ci.x<0)			||
@@ -1019,8 +1010,8 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 	}
 	else
 	{
-		memcpy(posout, posin, sizeof(vec3f) * CLIP_POINT_IN);
-		memcpy(uvout, uvin, sizeof(vec2f) * CLIP_POINT_IN);
+		memcpy(posout, posin, sizeof(vec3f) * CLIP_TRI_IN);
+		memcpy(uvout, uvin, sizeof(vec2f) * CLIP_TRI_IN);
 		*cntout = 1;
 		return;
 	}
