@@ -79,7 +79,6 @@ void render_free()
 }
 void render_run()
 {
-				srand (5);
     for(int m=0;m<MODEL_CNT;m++)
     {
         if(RENDER_DATA.models[m].flags & MODEL_FLAG_DRAW)
@@ -102,17 +101,24 @@ void render_run()
 				render_triangle in[CLIP_TRI_IN];
 				render_triangle out[CLIP_TRI_OUT];
 
-                in[0].a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mvp);
-                in[0].b = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mvp);
-                in[0].c = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mvp);
+                in[0].a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
+                in[0].b = vec3f_trans(RENDER_DATA.models[m].rtri[f].b, mv);
+                in[0].c = vec3f_trans(RENDER_DATA.models[m].rtri[f].c, mv);
                 in[0].uva = RENDER_DATA.models[m].rtri[f].uva;
                 in[0].uvb = RENDER_DATA.models[m].rtri[f].uvb;
                 in[0].uvc = RENDER_DATA.models[m].rtri[f].uvc;
                 in[0].cola = RENDER_DATA.models[m].rtri[f].cola;
                 in[0].colb = RENDER_DATA.models[m].rtri[f].colb;
                 in[0].colc = RENDER_DATA.models[m].rtri[f].colc;
-void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
+				int outcnt_z;
+				vec3f p_z = (vec3f){0.f, 0.f, 0.1f};
+				vec3f n_z = (vec3f){0.f, 0.f, 1.f};
+				outcnt_z = triangle_clip_plane(p_z, n_z, in[0], &out[0],&out[1]);
+				if(outcnt_z == 0)
+					continue;
+				outcnt = outcnt_z;
 /*
+void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
 				int outcnt_z;
 				vec3f p_z = (vec3f){0.f, 0.f, 1.0f};
 				vec3f n_z = (vec3f){0.f, 0.f, -1.f};
@@ -176,6 +182,9 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 
                 for(int i=0;i<outcnt;i++)
                 {
+                out[i].a = vec3f_trans(out[i].a, CAMERA->proj);
+                out[i].b = vec3f_trans(out[i].b, CAMERA->proj);
+                out[i].c = vec3f_trans(out[i].c, CAMERA->proj);
 
 					vec3f ofs = (vec3f){1,1,0};
 					vec3f scale = (vec3f){0.5f*RENDER_DATA.width,0.5f*RENDER_DATA.height,ZBUF_DEPTH};
@@ -199,13 +208,15 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 					vec3f cola = out[i].cola;
 					vec3f colb = out[i].colb;
 					vec3f colc = out[i].colc;
-
+/*
+// breaks clipping
 					if(((ai.y == bi.y) && (ai.y == ci.y)) 	||
 					   (ai.x<0 && bi.x<0 && ci.x<0)			||
 					   (ai.y<0 && bi.y<0 && ci.y<0) 		||
 					   (ai.x>=RENDER_DATA.width && bi.x>=RENDER_DATA.width && ci.x>=RENDER_DATA.width) ||
 					   (ai.y>=RENDER_DATA.height&& bi.y>=RENDER_DATA.height&& ci.y>=RENDER_DATA.height))
 						continue;
+*/
 //					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
 					triangle_color(ai,bi,ci,cola, colb, colc);
                 }
