@@ -35,6 +35,11 @@ int main()
 	model_raw iqe_sphere = loadiqe("res/sphere.iqe");
 	model_raw iqe_knight = loadiqe("res/knight.iqe");
 
+	model_raw iqe_tri = loadiqe("res/tri.iqe");
+	model *tri = load_model(iqe_tri, iqe_tri, &t_tiles);
+	tri->flags = MODEL_FLAG_DRAW;
+	unload_model_raw(iqe_tri);
+
 	model *sphere = load_model(iqe_sphere, iqe_sphere, &t_tiles);
 	sphere->flags = 0;
 	model *knight = load_model(iqe_knight, iqe_knight, &t_tiles);
@@ -69,7 +74,7 @@ int main()
 
 
 	player p = player_init((vec3f){0.f, 0.f, 30.f});
-	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
+//	mob *b = mob_add((vec3f){35.f, -10.f, 0.f}, (vec2f){1.f, 1.f}, (vec3f){1.f, 1.f, 1.f}, knight);
 
 	camera cam = {0};
 	CAMERA = &cam;
@@ -107,7 +112,7 @@ int main()
 //		render_flush();
 
 // debug start
-		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\ntar: %f %f %f\nflags: %i\nzbuf: %i",
+		sprintf(debug_text, "TIME: %i %i\npos: %f %f %f\ntar: %f %f %f\nflags: %i\nzbuf: %i\n",
 							gtime, rtime,
 							p.pos.x, p.pos.y, p.pos.z, 
 							CAMERA->target.x, CAMERA->target.y, CAMERA->target.z, 

@@ -74,71 +74,92 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
     float distb = vec3f_dist_plane(p, n, in.b);
     float distc = vec3f_dist_plane(p, n, in.c);
 
-    if(dista >= 0)
-    {
-        inp[incnt] = in.a;
-        incnt++;
-    }
-    else
-    {
-        outp[outcnt] = in.a;
-        outcnt++;
-    }
-    if(distb >= 0)
-    {
-        inp[incnt] = in.b;
-        incnt++;
-    }
-    else
-    {
-        outp[outcnt] = in.b;
-        outcnt++;
-    }
-    if(distc >= 0)
-    {
-        inp[incnt] = in.a;
-        incnt++;
-    }
-    else
-    {
-        outp[outcnt] = in.c;
-        outcnt++;
-    }
+	if(dista <= 0 && distb <= 0 && distc <= 0)
+		return 0;
+	else if(dista <= 0)
+	{
+		if(distb <= 0)
+		{
+			// double: in1, out1, out2
+			// clip double c, a, b
+			float l1 = inv_lerp(dista, distc, 0.f);
+			float l2 = inv_lerp(distb, distc, 0.f);
+			out0->a = vec3f_lerp(in.a, in.c, l1);
+			out0->b = vec3f_lerp(in.b, in.c, l2);
+			out0->c = in.c;
+			return 1;
+		}
+		else if(distc <= 0)
+		{
+			// clip double b, a, c
+			float l1 = inv_lerp(dista, distb, 0.f);
+			float l2 = inv_lerp(distc, distb, 0.f);
+			out0->a = vec3f_lerp(in.a, in.b, l1);
+			out0->b = vec3f_lerp(in.c, in.b, l2);
+			out0->c = in.b;
+			return 1;
+		}
+		else
+		{
+			// clip single b, c, a
+			float l1 = inv_lerp(dista, distb, 0.f);
+			float l2 = inv_lerp(dista, distc, 0.f);
+			out0->a = vec3f_lerp(in.a, in.b, l1);
+			out0->b = in.b;
+			out0->c = in.c;
 
-    if(incnt == 0)
-        return 0;
-    else if(incnt == 3)
-    {
-        *out0 = in;
-        return 1;
-    }
-    else if(incnt == 1)
-    {
-        float l1 = vec3f_lerp_plane(p, n, inp[0], outp[0]);
-        float l2 = vec3f_lerp_plane(p, n, inp[0], outp[1]);
+			out1->a = vec3f_lerp(in.a, in.c, l2);
+			out1->b = out0->a;
+			out1->c = in.c;
+			return 2;
+		}
+	}
+	else if(distb <= 0)
+	{
+		if(distc <= 0)
+		{
+			// clip double a, b, c
+			float l1 = inv_lerp(distb, dista, 0.f);
+			float l2 = inv_lerp(distc, dista, 0.f);
+			out0->a = vec3f_lerp(in.b, in.a, l1);
+			out0->b = vec3f_lerp(in.c, in.a, l2);
+			out0->c = in.a;
+			return 1;
+		}
+		else
+		{
+			// clip single a, c, b
+			float l1 = inv_lerp(distb, dista, 0.f);
+			float l2 = inv_lerp(distb, distc, 0.f);
+			out0->a = vec3f_lerp(in.b, in.a, l1);
+			out0->b = in.a;
+			out0->c = in.c;
 
-        out0->a = inp[0];
+			out1->a = vec3f_lerp(in.b, in.c, l2);
+			out1->b = out0->a;
+			out1->c = in.c;
+			return 2;
+		}
+	}
+	else if(distc <= 0)
+	{
+		// clip single a, b, c
+		float l1 = inv_lerp(distc, dista, 0.f);
+		float l2 = inv_lerp(distc, distb, 0.f);
+		out0->a = vec3f_lerp(in.c, in.a, l1);
+		out0->b = in.a;
+		out0->c = in.b;
 
-        out0->b = vec3f_lerp(inp[0], outp[0], l1);
+		out1->a = vec3f_lerp(in.c, in.b, l2);
+		out1->b = out0->a;
+		out1->c = in.b;
+	
+		return 2;
+	}
+	//copy all
+	*out0 = in;
+	return 1;
 
-        out0->c = vec3f_lerp(inp[0], outp[1], l2);
-        return 1;
-    }
-    else // if(incnt == 2)
-    {
-        float l1 = vec3f_lerp_plane(p, n, inp[0], outp[0]);
-        float l2 = vec3f_lerp_plane(p, n, inp[1], outp[0]);
-		printf("l1: %f l2: %f\n", l1, l2);
-
-        out0->a = inp[0];
-        out0->b = inp[1];
-        out0->c = vec3f_lerp(inp[0], outp[0], l1);
-
-        out1->a = vec3f_lerp(inp[1], outp[0], l2);
-        out1->b = inp[0];
-        out1->c = inp[1];
-        return 2;
-    }
 }
 
 

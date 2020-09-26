@@ -44,7 +44,7 @@
 #define ZBUF_MIN		INT_MIN
 
 #define CLIP_TRI_IN 	3
-#define CLIP_TRI_OUT 	6
+#define CLIP_TRI_OUT 	32
 #define CLIP_NEAR		0.1f
 
 #define PI 				3.14159265358979323846f
