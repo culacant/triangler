@@ -97,8 +97,9 @@ void render_run()
 				if(vec3f_dot(norm, normcam) > 0.f)
 					continue;
 
+				int incnt = 1;
+				render_triangle in[CLIP_TRI_OUT];
 				int outcnt = 0;
-				render_triangle in[CLIP_TRI_IN];
 				render_triangle out[CLIP_TRI_OUT];
 
                 in[0].a = vec3f_trans(RENDER_DATA.models[m].rtri[f].a, mv);
@@ -110,71 +111,72 @@ void render_run()
                 in[0].cola = RENDER_DATA.models[m].rtri[f].cola;
                 in[0].colb = RENDER_DATA.models[m].rtri[f].colb;
                 in[0].colc = RENDER_DATA.models[m].rtri[f].colc;
-				int outcnt_z;
+// clip z min
 				vec3f p_z = (vec3f){0.f, 0.f, 0.1f};
 				vec3f n_z = (vec3f){0.f, 0.f, 1.f};
-				outcnt_z = triangle_clip_plane(p_z, n_z, in[0], &out[0],&out[1]);
-				if(outcnt_z == 0)
+				outcnt = triangle_clip_plane(p_z, n_z, in[0], &out[0],&out[1]);
+				if(outcnt == 0)
 					continue;
-				outcnt = outcnt_z;
-/*
-void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout)
-				int outcnt_z;
-				vec3f p_z = (vec3f){0.f, 0.f, 1.0f};
-				vec3f n_z = (vec3f){0.f, 0.f, -1.f};
-				outcnt_z = triangle_clip_plane(p_z, n_z, in[0], &out[0],&out[1]);
-				if(outcnt_z == 0)
-					continue;
-				outcnt = outcnt_z;
-
-				int outcnt_minx = 0;
-				for(int i=0;i<outcnt;i++)
+				incnt = outcnt;
+				outcnt = 0;
+				memcpy(in, out, sizeof(render_triangle)*incnt);
+// transform
+				for(int i=0;i<incnt;i++)
+				{
+					in[i].a = vec3f_trans(in[i].a, CAMERA->proj);
+					in[i].b = vec3f_trans(in[i].b, CAMERA->proj);
+					in[i].c = vec3f_trans(in[i].c, CAMERA->proj);
+				}
+// clip x min
+				for(int i=0;i<incnt;i++)
 				{
 					vec3f p_minx = (vec3f){1.f, 0.f, 0.0f};
 					vec3f n_minx = (vec3f){-1.f, 0.f, 0.f};
-					int outcnt_cur = triangle_clip_plane(p_minx, n_minx, out[i], &out[i],&out[outcnt+outcnt_minx]);
-					outcnt_minx += outcnt_cur;
+					outcnt += triangle_clip_plane(p_minx, n_minx, in[i], &out[outcnt],&out[outcnt+1]);
 				}
-				if(outcnt_minx == 0)
+				if(outcnt == 0)
 					continue;
-				outcnt =+ outcnt_minx;
-
-				int outcnt_maxx = 0;
-				for(int i=0;i<outcnt;i++)
+				incnt = outcnt;
+				outcnt = 0;
+				memcpy(in, out, sizeof(render_triangle)*incnt);
+// clip x max
+				for(int i=0;i<incnt;i++)
 				{
-					vec3f p_maxx = (vec3f){-1.f, 0.f, 0.0f};
-					vec3f n_maxx = (vec3f){1.f, 0.f, 0.f};
-					int outcnt_cur = triangle_clip_plane(p_maxx, n_maxx, out[i], &out[i],&out[outcnt+outcnt_maxx]);
-					outcnt_maxx += outcnt_cur;
+					vec3f p_maxx = (vec3f){0.f, -1.f, 0.0f};
+					vec3f n_maxx = (vec3f){0.f, 1.f, 0.f};
+					outcnt += triangle_clip_plane(p_maxx, n_maxx, in[i], &out[outcnt],&out[outcnt+1]);
 				}
-				if(outcnt_maxx == 0)
+				if(outcnt == 0)
 					continue;
-				outcnt =+ outcnt_maxx;
-
-				int outcnt_miny = 0;
-				for(int i=0;i<outcnt;i++)
+				incnt = outcnt;
+				outcnt = 0;
+				memcpy(in, out, sizeof(render_triangle)*incnt);
+// clip y min
+				for(int i=0;i<incnt;i++)
 				{
 					vec3f p_miny = (vec3f){0.f, 1.f, 0.0f};
 					vec3f n_miny = (vec3f){0.f, -1.f, 0.f};
-					int outcnt_cur = triangle_clip_plane(p_miny, n_miny, out[i], &out[i],&out[outcnt+outcnt_miny]);
-					outcnt_miny += outcnt_cur;
+					outcnt += triangle_clip_plane(p_miny, n_miny, in[i], &out[outcnt],&out[outcnt+1]);
 				}
-				if(outcnt_miny == 0)
+				if(outcnt == 0)
 					continue;
-				outcnt =+ outcnt_miny;
-
-				int outcnt_maxy = 0;
-				for(int i=0;i<outcnt;i++)
+				incnt = outcnt;
+				outcnt = 0;
+				memcpy(in, out, sizeof(render_triangle)*incnt);
+// clip y max
+				for(int i=0;i<incnt;i++)
 				{
-					vec3f p_maxy = (vec3f){0.f, -1.f, 0.0f};
-					vec3f n_maxy = (vec3f){0.f, 1.f, 0.f};
-					int outcnt_cur = triangle_clip_plane(p_maxy, n_maxy, out[i], &out[i],&out[outcnt+outcnt_maxy]);
-					outcnt_maxy += outcnt_cur;
+					vec3f p_maxy = (vec3f){-1.f, 0.f, 0.0f};
+					vec3f n_maxy = (vec3f){1.f, 0.f, 0.f};
+					outcnt += triangle_clip_plane(p_maxy, n_maxy, in[i], &out[outcnt],&out[outcnt+1]);
 				}
-				if(outcnt_maxy == 0)
+				if(outcnt == 0)
 					continue;
-				outcnt =+ outcnt_maxy;
-
+// setup output
+/*
+				incnt = outcnt;
+				outcnt = 0;
+				memcpy(in, out, sizeof(render_triangle)*incnt);
 */
 				vec3i ai;
 				vec3i bi;
@@ -182,10 +184,6 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 
                 for(int i=0;i<outcnt;i++)
                 {
-                out[i].a = vec3f_trans(out[i].a, CAMERA->proj);
-                out[i].b = vec3f_trans(out[i].b, CAMERA->proj);
-                out[i].c = vec3f_trans(out[i].c, CAMERA->proj);
-
 					vec3f ofs = (vec3f){1,1,0};
 					vec3f scale = (vec3f){0.5f*RENDER_DATA.width,0.5f*RENDER_DATA.height,ZBUF_DEPTH};
 
@@ -208,15 +206,6 @@ void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvo
 					vec3f cola = out[i].cola;
 					vec3f colb = out[i].colb;
 					vec3f colc = out[i].colc;
-/*
-// breaks clipping
-					if(((ai.y == bi.y) && (ai.y == ci.y)) 	||
-					   (ai.x<0 && bi.x<0 && ci.x<0)			||
-					   (ai.y<0 && bi.y<0 && ci.y<0) 		||
-					   (ai.x>=RENDER_DATA.width && bi.x>=RENDER_DATA.width && ci.x>=RENDER_DATA.width) ||
-					   (ai.y>=RENDER_DATA.height&& bi.y>=RENDER_DATA.height&& ci.y>=RENDER_DATA.height))
-						continue;
-*/
 //					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
 					triangle_color(ai,bi,ci,cola, colb, colc);
                 }
@@ -550,28 +539,6 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 
 		for(int y=miny;y<maxy;y++)
 		{   
-// TODO: this breaks renderer
-			if(y<0)
-			{
-				float ycnt = 1.f;
-				while(y<0)
-				{
-					ycnt += 1.f;
-					y++;
-				}
-
-				curxl += stepxl*ycnt;
-				curxs += stepxs*ycnt;
-
-				curzl += stepzl*ycnt;
-				curzs += stepzs*ycnt;
-
-				curcl = vec3f_add(curcl, vec3f_scale(stepcl, ycnt));
-				curcs = vec3f_add(curcs, vec3f_scale(stepcs, ycnt));
-			}
-			else if(y >= RENDER_DATA.height)
-				break;
-
 			int minx = (int)curxl;
 			int maxx = (int)curxs;
 			float minz = curzl;
@@ -601,13 +568,7 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 
 			for(int x = minx;x<maxx;x++)
 			{
-				if(x<0)
-					continue;
-				else if(x >= RENDER_DATA.width)
-					break;
-
 				minz += dz;
-
 				if(render_getz(x, y) < minz)
 				{
 					minc = vec3f_add(minc, dc);
