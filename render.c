@@ -524,17 +524,14 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 
 			stepxl = (float)(b.x-c.x)/(float)(b.y-c.y);
 			curxl = (float)b.x;
-			curxs -= stepxs;
 
 			stepzl = (float)(b.z-c.z)/(b.y-c.y);
 			curzl = (float)b.z;
-			curzs -= stepzs;
 
 			stepcl.x = (float)(cb.x-cc.x)/(float)(b.y-c.y);
 			stepcl.y = (float)(cb.y-cc.y)/(float)(b.y-c.y);
 			stepcl.z = (float)(cb.z-cc.z)/(float)(b.y-c.y);
 			curcl = cb;
-			curcs = vec3f_sub(curcs, stepcs);
 		}
 
 		for(int y=miny;y<maxy;y++)
