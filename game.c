@@ -53,15 +53,15 @@ void game_run(player *p , model *sphere)
 		p->face.x += (float)(input_mouse_relx()*MOUSE_SENSITIVITY*DEG2RAD);
 		p->face.y += (float)(input_mouse_rely()*MOUSE_SENSITIVITY*DEG2RAD);
 	}
-	if(input_key(KEY_W))
+	if(input_key(KEYMAP_FORWARD))
 		p->impulse.x += IMPULSE;
-	if(input_key(KEY_S))
+	if(input_key(KEYMAP_BACKWARD))
 		p->impulse.x -= IMPULSE;
-	if(input_key(KEY_A))
+	if(input_key(KEYMAP_STRAFELEFT))
 		p->impulse.y += IMPULSE;
-	if(input_key(KEY_D))
+	if(input_key(KEYMAP_STRAFERIGHT))
 		p->impulse.y -= IMPULSE;
-	if(input_key(KEY_SPACE))
+	if(input_key(KEYMAP_JUMP))
 		p->impulse.z += JUMP_HEIGHT;
 
 	p->impulse.z += GRAVITY.z;
@@ -70,7 +70,7 @@ void game_run(player *p , model *sphere)
 
 	player_update_muzzle(p);
 
-	if(input_key(KEY_R))
+	if(input_key(KEYMAP_FIRE))
 	{
 		vec3f pos = p->muzzle;
 		vec3f vel = (vec3f){10.f, 0.f, 0.f};
@@ -94,32 +94,16 @@ void game_frametime_update()
 {
     static int lasttime;
     int curtime;
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    curtime = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
+
+	curtime = os_timer_get();
+
     GAME_DATA.frametime = curtime - lasttime;
     lasttime = curtime;
 }
 
 void input_init()
 {
-    INPUT_DATA.fd_kb = open(KB_NAME, O_RDONLY);
-    INPUT_DATA.fd_mouse = open(MOUSE_NAME, O_RDONLY);
-    fcntl(INPUT_DATA.fd_mouse, F_SETFL, O_NONBLOCK);
-
-    if(INPUT_DATA.fd_kb <= 0)
-    {    
-        printf("ERROR: cannot open input: %s\n", KB_NAME);
-        return;
-    }    
-
-    memset(INPUT_DATA.keys, 0, sizeof(INPUT_DATA.keys));
-
-    if(INPUT_DATA.fd_mouse<= 0)
-    {    
-        printf("ERROR: cannot open input: %s\n", MOUSE_NAME);
-        return;
-    }    
+	os_input_init();
     memset(INPUT_DATA.mousedata, 0, sizeof(INPUT_DATA.mousedata));
     INPUT_DATA.mouseactivity = 0; 
     INPUT_DATA.mouseshow = 0; 
@@ -130,16 +114,11 @@ void input_init()
 }
 void input_free()
 {
-    close(INPUT_DATA.fd_kb);
-    close(INPUT_DATA.fd_mouse);
+	os_input_free();
 }
 void input_flush()
 {
-    memset(INPUT_DATA.mousedata, 0, sizeof(INPUT_DATA.mousedata));
-    ioctl(INPUT_DATA.fd_kb, EVIOCGKEY(sizeof(INPUT_DATA.keys)), INPUT_DATA.keys);
-
-    INPUT_DATA.mouseactivity = read(INPUT_DATA.fd_mouse, INPUT_DATA.mousedata, sizeof(INPUT_DATA.mousedata));
-
+	os_input_flush();
     if(INPUT_DATA.mouseshow)
     {    
         INPUT_DATA.mousex += input_mouse_relx();

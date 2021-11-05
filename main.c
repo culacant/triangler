@@ -1,4 +1,3 @@
-#include <unistd.h>
 
 vec3f camray_model_intersect(model_raw m)
 {
@@ -47,6 +46,7 @@ int main()
 	unload_model_raw(iqe_sphere);
 	unload_model_raw(iqe_knight);
 
+/*
 	model_raw iqe_lvl = loadiqe("res/lvl/level1_vc.iqe");
 	model_raw iqe_lvl_col = loadiqe("res/lvl/level1_vc_col.iqe");
 	model *m = load_model(iqe_lvl, iqe_lvl_col, &t_floor);
@@ -54,7 +54,7 @@ int main()
 	unload_model_raw(iqe_lvl);
 	unload_model_raw(iqe_lvl_col);
 
-/*
+*/
 	model_raw iqe_wall = loadiqe("res/lvl/level1_wall.iqe");
 	model_raw iqe_floor = loadiqe("res/lvl/level1_floor.iqe");
 	
@@ -70,7 +70,6 @@ int main()
 	unload_model_raw(iqe_floor);
 	unload_model_raw(iqe_wall_col);
 	unload_model_raw(iqe_floor_col);
-*/
 
 
 	player p = player_init((vec3f){0.f, 0.f, 30.f});
@@ -88,7 +87,7 @@ int main()
 	int rtime = 0;
 	int gtime = 0;
 
-	while(!input_key(KEY_Q))
+	while(!input_key(KEYMAP_QUIT))
 	{
 // game start
 		game_frametime_update();
@@ -116,7 +115,10 @@ int main()
 							gtime, rtime,
 							p.pos.x, p.pos.y, p.pos.z, 
 							CAMERA->target.x, CAMERA->target.y, CAMERA->target.z, 
-							p.flags, RENDER_DATA.zbuf[540*RENDER_DATA.width+960]);
+							p.flags,
+							//RENDER_DATA.zbuf[(RENDER_DATA.width/2) + (RENDER_DATA.height/2)*RENDER_DATA.width]
+							DEPTH
+							);
 		render_px(960, 540, color_rgb(255,0,255));
 		char models_text[1024];
 		print_mem(GAME_MEM, 0, models_text);

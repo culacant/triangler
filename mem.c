@@ -88,7 +88,7 @@ void* mem_alloc(unsigned int size, void *mem)
 {
 	block_hdr *cur = NULL;
 	block_hdr *new = mem;
-	void *adr;
+	char *adr;
 	do
 	{
 		cur = new;
@@ -96,7 +96,7 @@ void* mem_alloc(unsigned int size, void *mem)
 		{
 			if(cur->size >= size+sizeof(block_hdr))
 			{
-				adr = (void*)cur+(size+sizeof(block_hdr));
+				adr = (char*)cur+(size+sizeof(block_hdr));
 
 				new = adr;
 				new->flags = cur->flags;
@@ -109,7 +109,7 @@ void* mem_alloc(unsigned int size, void *mem)
 				return adr+sizeof(block_hdr);
 			}
 		}
-		adr = (void*)cur+(cur->size+sizeof(block_hdr));
+		adr = (char*)cur+(cur->size+sizeof(block_hdr));
 		new = adr;
 	} while(!(cur->flags & FLAG_END));
 	printf("MEM_ALLOC ERROR SIZE %i MEM %p\n", size, mem);
@@ -119,7 +119,7 @@ void mem_free(void *mem)
 {
 	block_hdr *cur = (block_hdr*)mem-1;
 	block_hdr *next;
-	void *adr = (void*)cur;
+	char *adr = (char*)cur;
 
 	cur->flags |= FLAG_FREE;
 	adr += cur->size+sizeof(block_hdr);

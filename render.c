@@ -5,43 +5,8 @@
 void render_init()
 {
 	RENDER_MEM = mem_init(RENDER_MEM_SIZE);
-	struct fb_var_screeninfo sinfo;
-	RENDER_DATA.fd = open(FB_NAME, O_RDWR);
-	if(RENDER_DATA.fd <= 0)
-	{
-		printf("ERROR: cannot open framebuffer: %s\n", FB_NAME);
-		return;
-	}
-	RENDER_DATA.tty = open(TTY_NAME,O_RDWR);
-	if(RENDER_DATA.tty <= 0)
-	{
-		printf("ERROR: cannot open TTY: %s\n", TTY_NAME);
-		return;
-	}
-	/*
-	if(ioctl(RENDER_DATA.tty, KDSETMODE, KD_GRAPHICS) == -1)
-	{
-		printf("ERROR: cannot set graphics mode on TTY: %s\n", TTY_NAME);
-		return;
-	}
-	*/
-	if(ioctl(RENDER_DATA.fd, FBIOGET_VSCREENINFO, &sinfo) < 0)
-	{
-		printf("ERROR: get screen info failed: %s\n", strerror(errno));
-		close(RENDER_DATA.fd);
-		return;
-	}
 
-	RENDER_DATA.width = sinfo.xres;
-	RENDER_DATA.height = sinfo.yres;
-
-	RENDER_DATA.fb = mmap(NULL, 4*RENDER_DATA.width*RENDER_DATA.height, PROT_READ | PROT_WRITE, MAP_SHARED, RENDER_DATA.fd, 0);
-	if(RENDER_DATA.fb == NULL)
-	{
-		printf("ERROR: mmap framebuffer failed\n");
-		close(RENDER_DATA.fd);
-		return;
-	}
+	os_fb_init();
 
 	RENDER_DATA.buf = calloc(RENDER_DATA.width*RENDER_DATA.height, sizeof(unsigned int));
 
@@ -63,15 +28,8 @@ void render_free()
 	free(RENDER_DATA.buf);
 	free(RENDER_DATA.zbuf);
 	free(RENDER_DATA.zbufmin);
-	munmap(RENDER_DATA.fb, 4*RENDER_DATA.width*RENDER_DATA.height);
 
-	if(ioctl(RENDER_DATA.tty, KDSETMODE, KD_TEXT) == -1)
-	{
-		printf("WARNING: cannot set text mode on TTY: %s\n", TTY_NAME);
-	}
-
-	close(RENDER_DATA.tty);
-	close(RENDER_DATA.fd);
+	os_fb_free();
 
 	mem_free(RENDER_DATA.models);
 	mem_free(RENDER_DATA.tris);
@@ -203,11 +161,16 @@ void render_run()
                     bi = (vec3i){out[i].b.x, out[i].b.y, out[i].b.z};
                     ci = (vec3i){out[i].c.x, out[i].c.y, out[i].c.z};
 
+/*
 					vec3f cola = out[i].cola;
 					vec3f colb = out[i].colb;
 					vec3f colc = out[i].colc;
-//					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
 					triangle_color(ai,bi,ci,cola, colb, colc);
+*/
+					vec2f uva = out[i].uva;
+					vec2f uvb = out[i].uvb;
+					vec2f uvc = out[i].uvc;
+					triangle_tex(ai,bi,ci,uva,uvb,uvc,1.0f,t);
                 }
             }
 
@@ -216,7 +179,7 @@ void render_run()
 }
 void render_flush()
 {
-	memcpy(RENDER_DATA.fb, RENDER_DATA.buf, sizeof(unsigned int)*RENDER_DATA.width*RENDER_DATA.height);
+	os_fb_blit();
 // pretty slow; zbuf flip?
 	memset(RENDER_DATA.buf, 0, sizeof(unsigned int)*RENDER_DATA.width*RENDER_DATA.height);
 	memcpy(RENDER_DATA.zbuf, RENDER_DATA.zbufmin, sizeof(int)*RENDER_DATA.width*RENDER_DATA.height);
@@ -295,9 +258,9 @@ void render_frametime_update()
 {
 	static int lasttime;
 	int curtime;
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	curtime = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
+
+	curtime = os_timer_get();
+
 	RENDER_DATA.frametime = curtime - lasttime;
 	lasttime = curtime;
 }
@@ -587,6 +550,16 @@ void triangle_color(vec3i a, vec3i b, vec3i c, vec3f ca, vec3f cb, vec3f cc)
 }
 void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, float bright, texture t)
 {
+	int depth = (a.z + b.z + c.z) / 3;
+	for (int i = MIPMAP_CNT - 1; i >= 0; i--)
+	{
+		if (depth < MIPMAP_DEPTHS[i])
+		{
+			depth = i;
+			break;
+		}
+	}
+
 	if(a.y>b.y)
 	{
 		vec3i_swap(&a, &b);
@@ -717,12 +690,14 @@ void triangle_tex(vec3i a, vec3i b, vec3i c, vec2f uva, vec2f uvb, vec2f uvc, fl
 				if(render_getz(x, y) < minz)
 				{
 					vec2i uvi;
-					uvi.x = minuv.x*t.width;
-					uvi.y = minuv.y*t.height;
-					unsigned int color = t.data[uvi.x+uvi.y*t.width];
+					uvi.x = minuv.x*t.width[depth];
+					uvi.y = minuv.y*t.height[depth];
+					unsigned int color = t.data[depth][uvi.x+uvi.y*t.width[depth]];
 
 					render_px(x, y, color);
 					render_setz(x, y, minz);
+					if (x == RENDER_DATA.width / 2 && y == RENDER_DATA.height / 2)
+						DEPTH = depth;
 				}
 			}
 
@@ -939,41 +914,62 @@ texture loadtga(const char *filename)
 		printf("Can't read TGA header from file %s\n", filename);
 		return out;
 	}
-	memcpy(&out.width, &header[12], sizeof(char)*2);
-	memcpy(&out.height, &header[14], sizeof(char)*2);
+	memcpy(&out.width[0], &header[12], sizeof(char)*2);
+	memcpy(&out.height[0], &header[14], sizeof(char)*2);
 	bbp = header[16];
 // TODO: header sanity checking
-	out.data = calloc(sizeof(unsigned int),out.width*out.height);
-	colordata = calloc(sizeof(unsigned char),out.width*out.height*bbp);
-	if(fread(colordata, sizeof(unsigned char), out.width*out.height*bbp, fp) == 0)
+	out.data[0] = calloc(sizeof(unsigned int),out.width[0]*out.height[0]);
+	colordata = calloc(sizeof(unsigned char),out.width[0]*out.height[0]*bbp);
+	if(fread(colordata, sizeof(unsigned char), out.width[0]*out.height[0]*bbp, fp) == 0)
 	{
 		printf("Can't read TGA color data from file %s\n", filename);
 		return out;
 	}
 	int charcnt = 0;
-	for(int i=0;i<out.width*out.height;i++)
+	for(int i=0;i<out.width[0]*out.height[0];i++)
 	{
-		out.data[i] = colordata[charcnt++] << BSHIFT;
-		out.data[i] += colordata[charcnt++] << GSHIFT;
-		out.data[i] += colordata[charcnt++] << RSHIFT;
+		out.data[0][i] = colordata[charcnt++] << BSHIFT;
+		out.data[0][i] += colordata[charcnt++] << GSHIFT;
+		out.data[0][i] += colordata[charcnt++] << RSHIFT;
+		out.data[0][i] += 0xff << ASHIFT;
 		if(bbp == 32)
 			charcnt++;
 	}
 	free(colordata);
 	fclose(fp);
+
+	texture_genmipmaps(&out);
 	return out;
 }
 void unloadtex(texture t)
 {
-	free(t.data);
+	for (int i = 0; i < MIPMAP_CNT; i++)
+		free(t.data[i]);
 }
 void drawtex(texture t)
 {
-	for(int y=0; y<t.height;y++)
+	for(int y=0; y<t.height[0];y++)
 	{
-		for(int x=0; x<t.width;x++)
+		for(int x=0; x<t.width[0];x++)
 		{
-			render_px_safe(x,y,t.data[x+y*t.width]);
+			render_px_safe(x,y,t.data[0][x+y*t.width[0]]);
+		}
+	}
+}
+void texture_genmipmaps(texture* t)
+{
+	for (int i = 1; i < MIPMAP_CNT; i++)
+	{
+		t->height[i] = t->height[i - 1] / 4;
+		t->width[i] = t->width[i - 1] / 4;
+		t->data[i] = calloc(sizeof(unsigned int), t->width[i] * t->height[i]);
+
+		for (int y = 0; y < t->height[i]; y++)
+		{
+			for (int x = 0; x < t->width[i]; x++)
+			{
+				t->data[i][x + y * t->width[i]] = t->data[i - 1][(x * 4) + (y * 4) * t->width[i - 1]];
+			}
 		}
 	}
 }
@@ -1090,6 +1086,11 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
             out0->cola = vec3f_lerp(in.cola, in.colc, l1);
             out0->colb = vec3f_lerp(in.colb, in.colc, l2);
             out0->colc = in.colc;
+
+	        out0->uva = vec2f_lerp(in.uva, in.uvc, l1);
+            out0->uvb = vec2f_lerp(in.uvb, in.uvc, l2);
+            out0->uvc = in.uvc;
+     
             return 1;
         }
         else if(distc < 0)
@@ -1103,6 +1104,10 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
             out0->cola = vec3f_lerp(in.cola, in.colb, l1);
             out0->colb = vec3f_lerp(in.colc, in.colb, l2);
             out0->colc = in.colb;
+
+            out0->uva = vec2f_lerp(in.uva, in.uvb, l1);
+            out0->uvb = vec2f_lerp(in.uvc, in.uvb, l2);
+            out0->uvc = in.uvb;
             return 1;
         }
         else
@@ -1124,6 +1129,15 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
             out1->cola = vec3f_lerp(in.cola, in.colc, l2);
             out1->colb = out0->cola;
             out1->colc = in.colc;
+
+            out0->uva = vec2f_lerp(in.uva, in.uvb, l1);
+            out0->uvb = in.uvb;
+            out0->uvc = in.uvc;
+
+            out1->uva = vec2f_lerp(in.uva, in.uvc, l2);
+            out1->uvb = out0->uva;
+            out1->uvc = in.uvc;
+ 
             return 2;
         }
     }   
@@ -1140,6 +1154,10 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
             out0->cola = vec3f_lerp(in.colb, in.cola, l1);
             out0->colb = vec3f_lerp(in.colc, in.cola, l2);
             out0->colc = in.cola;
+
+            out0->uva = vec2f_lerp(in.uvb, in.uva, l1);
+            out0->uvb = vec2f_lerp(in.uvc, in.uva, l2);
+            out0->uvc = in.uva;
             return 1;
         }
         else
@@ -1161,6 +1179,15 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
             out1->cola = vec3f_lerp(in.colb, in.colc, l2);
             out1->colb = out0->cola;
             out1->colc = in.colc;
+
+            out0->uva = vec2f_lerp(in.uvb, in.uva, l1);
+            out0->uvb = in.uva;
+            out0->uvc = in.uvc;
+
+            out1->uva = vec2f_lerp(in.uvb, in.uvc, l2);
+            out1->uvb = out0->uva;
+            out1->uvc = in.uvc;
+
             return 2;
         }
     }
@@ -1183,6 +1210,15 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
         out1->cola = vec3f_lerp(in.colc, in.colb, l2);
         out1->colb = out0->cola;
         out1->colc = in.colb;
+
+        out0->uva = vec2f_lerp(in.uvc, in.uva, l1);
+        out0->uvb = in.uva;
+        out0->uvc = in.uvb;
+
+        out1->uva = vec2f_lerp(in.uvc, in.uvb, l2);
+        out1->uvb = out0->uva;
+        out1->uvc = in.uvb;
+ 
         return 2;
     }
     *out0 = in;
@@ -1193,8 +1229,9 @@ int triangle_clip_plane(vec3f p, vec3f n, render_triangle in, render_triangle *o
 unsigned int color_rgb(unsigned char r, unsigned char g, unsigned char b)
 {
 	unsigned int color = r << RSHIFT;
-	color += g << GSHIFT;
-	color += b << BSHIFT;
+	color |= g << GSHIFT;
+	color |= b << BSHIFT;
+	color |= 0xff << ASHIFT;
 	return color;
 }
 unsigned int brighten(unsigned int c, float b)

@@ -1,44 +1,31 @@
 #ifndef RENDER_H
 #define RENDER_H
-
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <linux/fb.h>
-#include <linux/input.h>
-#include <linux/kd.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <byteswap.h>
 #include <errno.h>
 #include <limits.h>
 #include <time.h>
-
-#define TTY_NAME 		"/dev/tty3"
-#define FB_NAME 		"/dev/fb0"
-#define KB_NAME 		"/dev/input/event4"
-#define MOUSE_NAME 		"/dev/input/mice"
+#include "sys/rl.h"
 
 #define MOUSEBYTECNT 	3
 
-#define BUTTON_LEFT 	0x1
-#define BUTTON_RIGHT 	0x2
-#define BUTTON_MIDDLE 	0x4
+#define MOUSEBUTTON_LEFT 	0x1
+#define MOUSEBUTTON_RIGHT 	0x2
+#define MOUSEBUTTON_MIDDLE	0x4
 
 #define MOUSE_SENSITIVITY 0.5f
 
-#define BSHIFT 			0
-#define GSHIFT 			8
-#define RSHIFT 			16
-#define ASHIFT 			24
-
-#define BMASK			0x000000FF
-#define GMASK			0x0000FF00
-#define RMASK			0x00FF0000
-#define AMASK			0xFF000000
+#define MIPMAP_CNT		4
+#define MIPMAP_DEPTHS	(int[MIPMAP_CNT])\
+						{ \
+							0, \
+							-1020000, \
+							-1030000, \
+							-1040000 \
+						}
 
 #define ZBUF_DEPTH 		1048576.f
 #define ZBUF_MIN		INT_MIN
@@ -135,9 +122,9 @@ typedef struct model_raw
 } model_raw;
 typedef struct texture
 {
-	int width;
-	int height;
-	unsigned int *data;
+	int width[MIPMAP_CNT];
+	int height[MIPMAP_CNT];
+	unsigned int *data[MIPMAP_CNT];
 } texture;
 
 typedef struct intersection
@@ -274,6 +261,7 @@ model* dupe_model(model *m);
 texture loadtga(const char *filename);
 void unloadtex(texture t);
 void drawtex(texture t);
+void texture_genmipmaps(texture *t);
 
 void triangle_clip_viewport(vec3f *posin, vec2f *uvin, vec3f *posout, vec2f *uvout, int *cntout);
 void triangle_clip_single(vec3f in1, vec3f in2, vec3f out, vec2f in1uv, vec2f in2uv, vec2f outuv, vec3f *posout, vec2f *uvout);
@@ -388,5 +376,19 @@ int swept_sphere_collision(vec3f pos1, vec3f vel1, float radius1, vec3f pos2, fl
 input_data INPUT_DATA;
 render_data RENDER_DATA;
 camera *CAMERA;
+
+int DEPTH;
+
+// OS-specific functions
+int os_fb_init();
+void os_fb_blit();
+void os_fb_free();
+int os_input_init();
+int os_input_free();
+int os_input_flush();
+
+
+int os_timer_get();
+
 
 #endif // RENDER_H

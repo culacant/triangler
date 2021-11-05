@@ -478,7 +478,7 @@ mat4f mat_rotate(vec3f rot)
 }
 mat4f mat_invert(mat4f a)
 {
-	mat4f out = {};
+	mat4f out = {0};
     float b00 = a.m0*a.m5 - a.m1*a.m4;
     float b01 = a.m0*a.m6 - a.m2*a.m4;
     float b02 = a.m0*a.m7 - a.m3*a.m4;
