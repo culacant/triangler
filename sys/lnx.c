@@ -101,6 +101,6 @@ int os_input_flush()
 int os_timer_get()
 {
     struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	curtime = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
 }

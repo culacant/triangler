@@ -45,7 +45,7 @@ void os_fb_blit()
     UpdateTexture(buffer_gpu, RENDER_DATA.buf);
 
     BeginDrawing();
-    ClearBackground(WHITE);
+    ClearBackground(BLACK);
     DrawTexture(buffer_gpu, 0, 0, WHITE);
     DrawFPS(RENDER_DATA.width - 80, 10);
     EndDrawing();
